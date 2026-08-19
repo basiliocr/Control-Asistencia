@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <style>
+        :root {
+            --verde: #17803d;
+            --teal: #0f2f33;
+            --tenue: #5c7370;
+            --borde: #dbe5e3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #eef2f1;
+            color: #10221f;
+            min-height: 100vh;
+        }
+
+        .barra {
+            background: linear-gradient(160deg, #0f2f33, #123b40);
+            color: #fff;
+            padding: 22px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .barra .titulo {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .barra .sub {
+            font-size: 13px;
+            opacity: 0.75;
+            margin-top: 2px;
+        }
+
+        .barra form {
+            margin: 0;
+        }
+
+        .salir {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            border-radius: 9px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .salir:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .contenedor {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .resumen {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .tile {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid var(--verde);
+        }
+
+        .tile .num {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .tile .lbl {
+            font-size: 13px;
+            color: var(--tenue);
+            margin-top: 6px;
+        }
+
+        .tile.alerta {
+            border-left-color: #c0392b;
+        }
+
+        .tile.alerta .num {
+            color: #c0392b;
+        }
+
+        .seccion-titulo {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--tenue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 22px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--borde);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+            display: block;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .card .icono {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e7f6ec;
+            color: var(--verde);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .card.azul .icono {
+            background: #e6effb;
+            color: #1f5fbf;
+        }
+
+        .card .card-titulo {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .card .card-desc {
+            font-size: 13px;
+            color: var(--tenue);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .destacada {
+            grid-column: 1 / -1;
+            background: var(--verde);
+            color: #fff;
+            border: none;
+        }
+
+        .destacada .icono {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .destacada .card-desc {
+            color: rgba(255, 255, 255, 0.85);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="barra">
+        <div>
+            <div class="titulo">Panel de Administración</div>
+            <div class="sub">{{ institucion.nombre }}</div>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="salir">Cerrar sesión</button>
+        </form>
+    </div>
+
+    <div class="contenedor">
+        <div class="resumen">
+            <div class="tile">
+                <div class="num">{{ total_pasantes }}</div>
+                <div class="lbl">Pasantes activos</div>
+            </div>
+            <div class="tile">
+                <div class="num">{{ asistencias_hoy }}</div>
+                <div class="lbl">Marcaciones hoy</div>
+            </div>
+            <div class="tile {% if tardanzas_hoy %}alerta{% endif %}">
+                <div class="num">{{ tardanzas_hoy }}</div>
+                <div class="lbl">Tardanzas hoy</div>
+            </div>
+        </div>
+
+        <div class="seccion-titulo">Gestión</div>
+        <div class="cards">
+            <a class="card destacada" href="{% url 'reportes' %}">
+                <div class="icono">📊</div>
+                <div class="card-titulo">Reportes de asistencia</div>
+                <div class="card-desc">Consulta por pasante y fecha, con resumen y exportación a Excel.</div>
+            </a>
+
+            <a class="card" href="{% url 'pasantes_lista' %}">
+                <div class="icono">P</div>
+                <div class="card-titulo">Pasantes</div>
+                <div class="card-desc">Registrar, editar o dar de baja pasantes.</div>
+            </a>
+
+            <a class="card azul" href="{% url 'ubicacion' %}">
+                <div class="icono">◎</div>
+                <div class="card-titulo">Ubicación y perímetro</div>
+                <div class="card-desc">Ajustar en el mapa el punto y el radio de la institución.</div>
+            </a>
+
+            <a class="card" href="{% url 'asistencias_lista' %}">
+                <div class="icono">✓</div>
+                <div class="card-titulo">Asistencias</div>
+                <div class="card-desc">Ver y corregir marcaciones registradas.</div>
+            </a>
+
+            <a class="card" href="{% url 'dias_lista' %}">
+                <div class="icono">★</div>
+                <div class="card-titulo">Días especiales</div>
+                <div class="card-desc">Feriados y días con horario distinto.</div>
+            </a>
+
+            <a class="card" href="{% url 'admin:index' %}">
+                <div class="icono">⚙</div>
+                <div class="card-titulo">Administración avanzada</div>
+                <div class="card-desc">Usuarios, permisos y el panel clásico de Django.</div>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

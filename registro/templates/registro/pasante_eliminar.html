@@ -1,0 +1,37 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Eliminar pasante{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+    <h1>Eliminar pasante</h1>
+</div>
+
+<div class="tarjeta">
+    {% if tiene_historial %}
+    <p style="margin-bottom:16px; line-height:1.5;">
+        <strong>{{ pasante.nombre }}</strong> ya tiene asistencias registradas, así que
+        <strong>no se puede eliminar</strong> sin perder su historial. En su lugar,
+        será <strong>dado de baja</strong>: dejará de aparecer entre los activos y no podrá
+        marcar, pero su historial se conserva para los reportes.
+    </p>
+    {% else %}
+    <p style="margin-bottom:16px; line-height:1.5;">
+        ¿Seguro que quieres eliminar a <strong>{{ pasante.nombre }}</strong>?
+        Como no tiene ninguna asistencia registrada, se borrará por completo,
+        junto con su cuenta de acceso. Esta acción no se puede deshacer.
+    </p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-botones">
+            {% if tiene_historial %}
+            <button type="submit" class="btn btn-rojo">Dar de baja</button>
+            {% else %}
+            <button type="submit" class="btn btn-rojo">Eliminar definitivamente</button>
+            {% endif %}
+            <a class="btn btn-gris" href="{% url 'pasantes_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

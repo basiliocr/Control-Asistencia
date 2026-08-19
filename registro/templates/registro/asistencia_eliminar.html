@@ -1,0 +1,22 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Eliminar asistencia{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+    <h1>Eliminar registro de asistencia</h1>
+</div>
+<div class="tarjeta">
+    <p style="margin-bottom:16px;line-height:1.5;">
+        ¿Seguro que quieres eliminar el registro de
+        <strong>{{ asistencia.pasante.nombre }}</strong> del
+        <strong>{{ asistencia.fecha|date:"d/m/Y" }}</strong>?
+        Esta acción no se puede deshacer.
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-botones">
+            <button type="submit" class="btn btn-rojo">Eliminar</button>
+            <a class="btn btn-gris" href="{% url 'asistencias_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

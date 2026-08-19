@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+{% load l10n %}
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Asistencia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        :root {
+            --entrada: #17803d;
+            --entrada-hover: #146c34;
+            --salida: #1f5fbf;
+            --salida-hover: #1a52a5;
+            --tenue: #5c7370;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(160deg, #0f2f33, #123b40);
+            color: #10221f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .tarjeta {
+            background: #fff;
+            width: 100%;
+            max-width: 460px;
+            border-radius: 20px;
+            padding: 34px 32px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        .encabezado {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .reloj {
+            font-size: 40px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .fecha {
+            margin-top: 4px;
+            color: var(--tenue);
+            font-size: 14px;
+            text-transform: capitalize;
+        }
+
+        .saludo {
+            margin-top: 14px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .area {
+            color: var(--tenue);
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        .banner {
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            border-left: 4px solid;
+        }
+
+        .banner.ok {
+            background: #e7f6ec;
+            border-color: #17803d;
+            color: #0f5128;
+        }
+
+        .banner.error {
+            background: #fdeaea;
+            border-color: #c0392b;
+            color: #8f291f;
+        }
+
+        #mapa {
+            height: 220px;
+            border-radius: 14px;
+            margin-bottom: 10px;
+        }
+
+        .btn-ubicacion {
+            width: 100%;
+            background: #eef2f1;
+            border: 1.5px solid #d6e0de;
+            color: #10221f;
+            border-radius: 11px;
+            padding: 11px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .dist {
+            text-align: center;
+            font-size: 14px;
+            min-height: 20px;
+            margin-bottom: 18px;
+            color: var(--tenue);
+        }
+
+        .dist.dentro {
+            color: var(--entrada);
+            font-weight: 600;
+        }
+
+        .dist.fuera {
+            color: #c0392b;
+            font-weight: 600;
+        }
+
+        .botones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        button.marca {
+            border: none;
+            border-radius: 14px;
+            padding: 22px 0;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.05s ease;
+        }
+
+        button.marca:active {
+            transform: scale(0.98);
+        }
+
+        button.marca:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        .btn-entrada {
+            background: var(--entrada);
+        }
+
+        .btn-entrada:hover {
+            background: var(--entrada-hover);
+        }
+
+        .btn-salida {
+            background: var(--salida);
+        }
+
+        .btn-salida:hover {
+            background: var(--salida-hover);
+        }
+
+        .estado {
+            text-align: center;
+            font-size: 14px;
+            color: var(--tenue);
+            min-height: 20px;
+            margin-top: 16px;
+            line-height: 1.4;
+        }
+
+        .pie {
+            text-align: center;
+            margin-top: 18px;
+        }
+
+        .salir {
+            background: none;
+            border: none;
+            color: var(--tenue);
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .aviso {
+            text-align: center;
+            color: var(--tenue);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="tarjeta">
+        {% if sin_pasante %}
+        <div class="encabezado">
+            <div class="saludo">Cuenta sin pasante</div>
+        </div>
+        <p class="aviso">
+            Tu usuario no está vinculado a ningún pasante, así que no puede marcar
+            asistencia. Ingresa con la cuenta de un pasante.
+        </p>
+        <div class="pie">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="salir">Cerrar sesión</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="encabezado">
+            <div class="reloj" id="reloj">--:--</div>
+            <div class="fecha" id="fecha"></div>
+            <div class="saludo">Hola, {{ pasante.nombre }}</div>
+            <div class="area">{{ pasante.area }} · {{ pasante.identificador }}</div>
+        </div>
+
+        {% if resultado %}
+        <div class="banner {% if resultado.ok %}ok{% else %}error{% endif %}">
+            {{ resultado.mensaje }}
+        </div>
+        {% endif %}
+
+        <div id="mapa"></div>
+        <button type="button" class="btn-ubicacion" onclick="verMiUbicacion()">Ver mi ubicación en el mapa</button>
+        <div class="dist" id="dist"></div>
+
+        <form method="post" id="form-marca">
+            {% csrf_token %}
+            <input type="hidden" name="tipo" id="tipo">
+            <input type="hidden" name="lat" id="lat">
+            <input type="hidden" name="lng" id="lng">
+
+            <div class="botones">
+                <button type="button" class="marca btn-entrada" onclick="marcarAsistencia('ENTRADA')">ENTRADA</button>
+                <button type="button" class="marca btn-salida" onclick="marcarAsistencia('SALIDA')">SALIDA</button>
+            </div>
+        </form>
+
+        <div class="estado" id="estado">Al marcar se pedirá tu ubicación.</div>
+
+        <div class="pie">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="salir">Cerrar sesión</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // ----- Reloj en vivo -----
+        const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+            "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+        function actualizarReloj() {
+            const a = new Date();
+            const r = document.getElementById("reloj");
+            if (!r) return;
+            r.textContent = `${String(a.getHours()).padStart(2, "0")}:${String(a.getMinutes()).padStart(2, "0")}:${String(a.getSeconds()).padStart(2, "0")}`;
+            document.getElementById("fecha").textContent =
+                `${dias[a.getDay()]}, ${a.getDate()} de ${meses[a.getMonth()]} de ${a.getFullYear()}`;
+        }
+        actualizarReloj();
+        setInterval(actualizarReloj, 1000);
+
+        {% if not sin_pasante %}
+        // ----- Mapa de la institución -----
+        const instLat = {{ institucion_lat| unlocalize }};
+        const instLng = {{ institucion_lng| unlocalize }};
+        const radio = {{ radio| unlocalize }};
+
+        const map = L.map("mapa").setView([instLat, instLng], 16);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap", maxZoom: 19
+        }).addTo(map);
+
+        // Punto de la institución + círculo del radio permitido
+        L.circleMarker([instLat, instLng], {
+            radius: 8, color: "#17803d", fillColor: "#17803d", fillOpacity: 1
+        }).addTo(map).bindPopup("Institución");
+
+        const circulo = L.circle([instLat, instLng], {
+            radius: radio, color: "#17803d", fillColor: "#17803d", fillOpacity: 0.12
+        }).addTo(map);
+
+        map.fitBounds(circulo.getBounds());
+
+        let miMarcador = null;
+        function verMiUbicacion() {
+            const dist = document.getElementById("dist");
+            if (!navigator.geolocation) {
+                dist.textContent = "Tu dispositivo no permite geolocalización.";
+                return;
+            }
+            dist.textContent = "Obteniendo tu ubicación…";
+            dist.className = "dist";
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                    if (miMarcador) map.removeLayer(miMarcador);
+                    miMarcador = L.circleMarker([lat, lng], {
+                        radius: 8, color: "#1f5fbf", fillColor: "#1f5fbf", fillOpacity: 1
+                    }).addTo(map).bindPopup("Tú");
+
+                    const d = map.distance([lat, lng], [instLat, instLng]);
+                    const dentro = d <= radio;
+                    dist.textContent = `Estás a ${d.toFixed(0)} m — ${dentro ? "dentro del rango ✓" : "fuera del rango ✗"}`;
+                    dist.className = "dist " + (dentro ? "dentro" : "fuera");
+
+                    map.fitBounds(L.featureGroup([circulo, miMarcador]).getBounds().pad(0.2));
+                },
+                function () {
+                    dist.textContent = "No se pudo obtener tu ubicación.";
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // ----- Marcación con ubicación -----
+        function marcarAsistencia(tipo) {
+            const estado = document.getElementById("estado");
+            const botones = document.querySelectorAll("button.marca");
+            if (!navigator.geolocation) {
+                estado.textContent = "Tu dispositivo no permite geolocalización.";
+                return;
+            }
+            botones.forEach(b => b.disabled = true);
+            estado.textContent = "Obteniendo tu ubicación…";
+            document.getElementById("tipo").value = tipo;
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    document.getElementById("lat").value = pos.coords.latitude;
+                    document.getElementById("lng").value = pos.coords.longitude;
+                    estado.textContent = "Ubicación obtenida. Registrando…";
+                    document.getElementById("form-marca").submit();
+                },
+                function (err) {
+                    botones.forEach(b => b.disabled = false);
+                    if (err.code === 1) {
+                        estado.textContent = "Necesitas permitir el acceso a tu ubicación para marcar.";
+                    } else {
+                        estado.textContent = "No se pudo obtener tu ubicación. Intenta de nuevo.";
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+        {% endif %}
+    </script>
+</body>
+
+</html>

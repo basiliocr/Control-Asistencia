@@ -1,0 +1,31 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Editar asistencia{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+    <h1>Editar asistencia</h1>
+</div>
+
+<div class="tarjeta">
+    <p style="margin-bottom:18px;color:#5c7370;">
+        <strong style="color:#10221f;">{{ asistencia.pasante.nombre }}</strong> ·
+        {{ asistencia.fecha|date:"d/m/Y" }}
+    </p>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="campo">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for e in field.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+        <p style="font-size:13px;color:#5c7370;margin-top:-6px;">
+            Cualquier cambio quedará registrado en el historial de correcciones.
+        </p>
+        <div class="form-botones">
+            <button type="submit" class="btn btn-verde">Guardar</button>
+            <a class="btn btn-gris" href="{% url 'asistencias_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

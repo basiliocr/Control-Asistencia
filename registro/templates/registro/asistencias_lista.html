@@ -1,0 +1,80 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Planilla{% endblock %}
+{% block contenido %}
+<style>
+    .tarde-txt {
+        color: #c0392b;
+        font-weight: 600;
+    }
+</style>
+
+<div class="cabecera">
+    <h1>Planilla de asistencias</h1>
+</div>
+
+<form method="get"
+    style="background:#fff;border-radius:12px;padding:16px;display:flex;gap:14px;align-items:flex-end;box-shadow:0 4px 14px rgba(0,0,0,0.06);margin-bottom:18px;flex-wrap:wrap;">
+    <div class="campo" style="margin:0;">
+        <label for="pasante">Pasante</label>
+        <select name="pasante" id="pasante" style="min-width:160px;">
+            <option value="">Todos</option>
+            {% for p in pasantes %}
+            {% if p.id|stringformat:"s" == pasante_id %}
+            <option value="{{ p.id }}" selected>{{ p.nombre }}</option>
+            {% else %}
+            <option value="{{ p.id }}">{{ p.nombre }}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+    <div class="campo" style="margin:0;">
+        <label for="desde">Desde</label>
+        <input type="date" name="desde" id="desde" value="{{ desde }}">
+    </div>
+    <div class="campo" style="margin:0;">
+        <label for="hasta">Hasta</label>
+        <input type="date" name="hasta" id="hasta" value="{{ hasta }}">
+    </div>
+    <button type="submit" class="btn btn-verde">Filtrar</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>Pasante</th>
+            <th>Fecha</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Tardanza</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in asistencias %}
+        <tr>
+            <td>{{ a.pasante.nombre }}</td>
+            <td>{{ a.fecha|date:"d/m/Y" }}</td>
+            <td>{{ a.hora_entrada|time:"H:i"|default:"—" }}</td>
+            <td>{{ a.hora_salida|time:"H:i"|default:"—" }}</td>
+            <td>
+                {% if a.tardanza_min %}
+                <span class="tarde-txt">{{ a.tardanza_min }} min</span>
+                {% else %}
+                —
+                {% endif %}
+            </td>
+            <td>{{ a.get_estado_display }}</td>
+            <td class="acciones">
+                <a class="a-editar" href="{% url 'asistencia_editar' a.pk %}">Editar</a>
+                <a class="a-eliminar" href="{% url 'asistencia_eliminar' a.pk %}">Eliminar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" style="text-align:center;color:#5c7370;padding:26px;">No hay registros en este rango.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

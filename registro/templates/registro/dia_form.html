@@ -1,0 +1,25 @@
+{% extends "registro/base.html" %}
+{% block titulo %}{% if dia %}Editar día{% else %}Nuevo día{% endif %}{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+    <h1>{% if dia %}Editar día especial{% else %}Nuevo día especial{% endif %}</h1>
+</div>
+
+<div class="tarjeta">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="campo">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {% for e in field.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+        <div class="form-botones">
+            <button type="submit" class="btn btn-verde">Guardar</button>
+            <a class="btn btn-gris" href="{% url 'dias_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

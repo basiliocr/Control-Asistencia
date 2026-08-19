@@ -1,0 +1,41 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Pasantes{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+    <h1>Pasantes</h1>
+    <a class="btn btn-verde" href="{% url 'pasante_nuevo' %}">+ Nuevo pasante</a>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Identificador</th>
+            <th>Nombre</th>
+            <th>Área</th>
+            <th>Horario</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in pasantes %}
+        <tr>
+            <td>{{ p.identificador }}</td>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.area }}</td>
+            <td>{{ p.horario_entrada|time:"H:i" }} – {{ p.horario_salida|time:"H:i" }}</td>
+            <td>{% if p.activo %}Activo{% else %}<span class="baja">De baja</span>{% endif %}</td>
+            <td class="acciones">
+                <a class="a-editar" href="{% url 'pasante_editar' p.pk %}">Editar</a>
+                <a class="a-eliminar" href="{% url 'pasante_eliminar' p.pk %}">Eliminar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" style="text-align:center; color:#5c7370; padding:26px;">No hay pasantes registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

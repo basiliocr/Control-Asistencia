@@ -1,0 +1,115 @@
+{% extends "registro/base.html" %}
+{% load l10n %}
+{% block titulo %}Ubicación{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<div class="cabecera">
+    <h1>Ubicación y perímetro</h1>
+</div>
+
+<div class="tarjeta" style="max-width:820px;">
+    <p style="color:#5c7370; margin-bottom:18px; line-height:1.5;">
+        Haz clic en el mapa (o arrastra el punto) para colocar la institución. También
+        puedes pegar coordenadas de Google Maps en los campos, o usar tu ubicación actual.
+        El círculo verde es el radio dentro del cual se acepta la asistencia.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="campo">
+            <label for="nombre">Nombre de la institución</label>
+            <input type="text" id="nombre" name="nombre" value="{{ inst.nombre }}">
+        </div>
+
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div class="campo" style="flex:1; min-width:150px;">
+                <label for="latitud">Latitud</label>
+                <input type="text" id="latitud" name="latitud" value="{{ inst.latitud|unlocalize }}">
+            </div>
+            <div class="campo" style="flex:1; min-width:150px;">
+                <label for="longitud">Longitud</label>
+                <input type="text" id="longitud" name="longitud" value="{{ inst.longitud|unlocalize }}">
+            </div>
+            <div class="campo" style="width:150px;">
+                <label for="radio_metros">Radio (metros)</label>
+                <input type="number" id="radio_metros" name="radio_metros" min="1" value="{{ inst.radio_metros }}">
+            </div>
+        </div>
+
+        <div id="mapa" style="height:420px; border-radius:12px; border:1px solid var(--borde); margin-bottom:12px;">
+        </div>
+        <button type="button" id="btn-mi-ubicacion" class="btn btn-gris">Usar mi ubicación actual</button>
+
+        <div class="form-botones">
+            <button type="submit" class="btn btn-verde">Guardar</button>
+            <a class="btn btn-gris" href="{% url 'panel' %}">Volver</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        function init() {
+            var latI = document.getElementById("latitud");
+            var lngI = document.getElementById("longitud");
+            var radI = document.getElementById("radio_metros");
+            if (typeof L === "undefined") return setTimeout(init, 150);
+
+            function num(v, def) { var n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? def : n; }
+
+            var lat = num(latI.value, -16.5);
+            var lng = num(lngI.value, -68.15);
+            var rad = num(radI.value, 100);
+
+            var map = L.map("mapa").setView([lat, lng], 16);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+
+            var marcador = L.marker([lat, lng], { draggable: true }).addTo(map);
+            var circulo = L.circle([lat, lng], {
+                radius: rad, color: "#17803d", fillColor: "#17803d", fillOpacity: 0.15
+            }).addTo(map);
+
+            function moverA(latlng, centrar) {
+                marcador.setLatLng(latlng);
+                circulo.setLatLng(latlng);
+                latI.value = latlng.lat.toFixed(6);
+                lngI.value = latlng.lng.toFixed(6);
+                if (centrar) map.setView(latlng);
+            }
+
+            map.on("click", function (e) { moverA(e.latlng, false); });
+            marcador.on("dragend", function () { moverA(marcador.getLatLng(), false); });
+
+            // Si el usuario escribe/pega coordenadas, mover el mapa
+            function desdeCampos() {
+                var la = num(latI.value, null), lo = num(lngI.value, null);
+                if (la !== null && lo !== null) moverA(L.latLng(la, lo), true);
+            }
+            latI.addEventListener("change", desdeCampos);
+            lngI.addEventListener("change", desdeCampos);
+
+            radI.addEventListener("input", function () {
+                var r = num(radI.value, 0);
+                if (r > 0) circulo.setRadius(r);
+            });
+
+            document.getElementById("btn-mi-ubicacion").addEventListener("click", function () {
+                if (!navigator.geolocation) return;
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    moverA(L.latLng(pos.coords.latitude, pos.coords.longitude), true);
+                    map.setZoom(17);
+                });
+            });
+
+            setTimeout(function () { map.invalidateSize(); }, 250);
+        }
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+        else init();
+    })();
+</script>
+{% endblock %}

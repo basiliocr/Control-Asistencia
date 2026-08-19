@@ -1,0 +1,32 @@
+{% extends "registro/base.html" %}
+{% block titulo %}{% if pasante %}Editar pasante{% else %}Nuevo pasante{% endif %}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+    <h1>{% if pasante %}Editar pasante{% else %}Nuevo pasante{% endif %}</h1>
+</div>
+
+<div class="tarjeta">
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="msg error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="campo">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {% for e in field.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+
+        <div class="form-botones">
+            <button type="submit" class="btn btn-verde">Guardar</button>
+            <a class="btn btn-gris" href="{% url 'pasantes_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

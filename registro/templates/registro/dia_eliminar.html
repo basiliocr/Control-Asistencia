@@ -1,0 +1,21 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Eliminar día{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+    <h1>Eliminar día especial</h1>
+</div>
+<div class="tarjeta">
+    <p style="margin-bottom:16px;line-height:1.5;">
+        ¿Seguro que quieres eliminar el día especial del
+        <strong>{{ dia.fecha|date:"d/m/Y" }}</strong> ({{ dia.get_tipo_display }})?
+        Esta acción no se puede deshacer.
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-botones">
+            <button type="submit" class="btn btn-rojo">Eliminar</button>
+            <a class="btn btn-gris" href="{% url 'dias_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
