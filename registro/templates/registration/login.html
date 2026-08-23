@@ -101,7 +101,11 @@
         <h1>Registro de Asistencia</h1>
         <p class="sub">Inicia sesión para marcar</p>
 
-        {% if form.errors %}
+        {% if form.non_field_errors %}
+        {% for e in form.non_field_errors %}
+        <div class="error">{{ e }}</div>
+        {% endfor %}
+        {% elif form.errors %}
         <div class="error">Usuario o contraseña incorrectos. Intenta de nuevo.</div>
         {% endif %}
 

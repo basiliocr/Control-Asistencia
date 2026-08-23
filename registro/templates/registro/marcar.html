@@ -5,16 +5,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Registro de Asistencia</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
+    </script>
+
     <style>
         :root {
             --entrada: #17803d;
             --entrada-hover: #146c34;
+
             --salida: #1f5fbf;
             --salida-hover: #1a52a5;
+
             --tenue: #5c7370;
+
+            --fondo: #0f2f33;
+            --fondo-secundario: #123b40;
+
+            --texto: #10221f;
+            --borde: #d6e0de;
+
+            --blanco: #ffffff;
         }
 
         * {
@@ -25,23 +40,52 @@
 
         body {
             min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(160deg, #0f2f33, #123b40);
-            color: #10221f;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+
+            background:
+                linear-gradient(160deg,
+                    var(--fondo),
+                    var(--fondo-secundario));
+
+            color: var(--texto);
+
             display: flex;
             align-items: center;
             justify-content: center;
+
             padding: 24px;
         }
 
+        /* =====================================================
+           TARJETA PRINCIPAL
+        ===================================================== */
+
         .tarjeta {
-            background: #fff;
             width: 100%;
             max-width: 460px;
+
+            background: var(--blanco);
+
             border-radius: 20px;
-            padding: 34px 32px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+
+            padding: 32px;
+
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.28);
+
+            overflow: hidden;
         }
+
+        /* =====================================================
+           ENCABEZADO
+        ===================================================== */
 
         .encabezado {
             text-align: center;
@@ -51,102 +95,193 @@
         .reloj {
             font-size: 40px;
             font-weight: 700;
+
             font-variant-numeric: tabular-nums;
+
+            color: var(--texto);
+
+            letter-spacing: 1px;
         }
 
         .fecha {
-            margin-top: 4px;
+            margin-top: 5px;
+
             color: var(--tenue);
+
             font-size: 14px;
+
             text-transform: capitalize;
         }
 
         .saludo {
-            margin-top: 14px;
+            margin-top: 15px;
+
             font-size: 18px;
+
             font-weight: 600;
         }
 
         .area {
             color: var(--tenue);
+
             font-size: 14px;
-            margin-top: 2px;
+
+            margin-top: 3px;
         }
+
+        /* =====================================================
+           MENSAJES
+        ===================================================== */
 
         .banner {
             border-radius: 12px;
+
             padding: 14px 16px;
+
             margin-bottom: 18px;
+
             font-size: 15px;
+
             line-height: 1.4;
+
             border-left: 4px solid;
         }
 
         .banner.ok {
             background: #e7f6ec;
-            border-color: #17803d;
+
+            border-color: var(--entrada);
+
             color: #0f5128;
         }
 
         .banner.error {
             background: #fdeaea;
+
             border-color: #c0392b;
+
             color: #8f291f;
         }
 
+        /* =====================================================
+           MAPA
+        ===================================================== */
+
         #mapa {
+            width: 100%;
+
             height: 220px;
+
             border-radius: 14px;
+
             margin-bottom: 10px;
+
+            overflow: hidden;
+
+            border: 1px solid #dfe8e6;
         }
+
+        /* =====================================================
+           BOTÓN UBICACIÓN
+        ===================================================== */
 
         .btn-ubicacion {
             width: 100%;
+
             background: #eef2f1;
-            border: 1.5px solid #d6e0de;
-            color: #10221f;
+
+            border: 1.5px solid var(--borde);
+
+            color: var(--texto);
+
             border-radius: 11px;
+
             padding: 11px;
+
             font-size: 14px;
+
             font-weight: 600;
+
             cursor: pointer;
+
             margin-bottom: 8px;
+
+            transition:
+                background 0.15s ease,
+                transform 0.05s ease;
         }
+
+        .btn-ubicacion:hover {
+            background: #e4ebe9;
+        }
+
+        .btn-ubicacion:active {
+            transform: scale(0.98);
+        }
+
+        /* =====================================================
+           DISTANCIA
+        ===================================================== */
 
         .dist {
             text-align: center;
+
             font-size: 14px;
+
             min-height: 20px;
+
             margin-bottom: 18px;
+
             color: var(--tenue);
+
+            line-height: 1.4;
         }
 
         .dist.dentro {
             color: var(--entrada);
+
             font-weight: 600;
         }
 
         .dist.fuera {
             color: #c0392b;
+
             font-weight: 600;
         }
 
+        /* =====================================================
+           BOTONES ENTRADA / SALIDA
+        ===================================================== */
+
         .botones {
             display: grid;
+
             grid-template-columns: 1fr 1fr;
+
             gap: 14px;
         }
 
         button.marca {
             border: none;
+
             border-radius: 14px;
+
             padding: 22px 0;
-            font-size: 19px;
+
+            font-size: 18px;
+
             font-weight: 700;
+
             letter-spacing: 0.5px;
+
             color: #fff;
+
             cursor: pointer;
-            transition: background 0.15s ease, transform 0.05s ease;
+
+            transition:
+                background 0.15s ease,
+                transform 0.05s ease,
+                opacity 0.15s ease;
         }
 
         button.marca:active {
@@ -155,7 +290,8 @@
 
         button.marca:disabled {
             opacity: 0.55;
-            cursor: default;
+
+            cursor: not-allowed;
         }
 
         .btn-entrada {
@@ -174,195 +310,941 @@
             background: var(--salida-hover);
         }
 
+        /* =====================================================
+           ESTADO
+        ===================================================== */
+
         .estado {
             text-align: center;
+
             font-size: 14px;
+
             color: var(--tenue);
+
             min-height: 20px;
+
             margin-top: 16px;
+
             line-height: 1.4;
         }
 
+        /* =====================================================
+           PIE
+        ===================================================== */
+
         .pie {
             text-align: center;
+
             margin-top: 18px;
         }
 
         .salir {
             background: none;
+
             border: none;
+
             color: var(--tenue);
+
             font-size: 13px;
+
             cursor: pointer;
+
             text-decoration: underline;
         }
 
+        .salir:hover {
+            color: #c0392b;
+        }
+
+        /* =====================================================
+           CUENTA SIN PASANTE
+        ===================================================== */
+
         .aviso {
             text-align: center;
+
             color: var(--tenue);
+
             font-size: 15px;
+
             line-height: 1.5;
+        }
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 520px) {
+
+            body {
+                padding: 12px;
+            }
+
+            .tarjeta {
+                padding: 24px 20px;
+
+                border-radius: 18px;
+            }
+
+            .reloj {
+                font-size: 34px;
+            }
+
+            #mapa {
+                height: 200px;
+            }
+
+            button.marca {
+                padding: 20px 0;
+
+                font-size: 17px;
+            }
+        }
+
+        @media (max-width: 360px) {
+
+            .botones {
+                grid-template-columns: 1fr;
+            }
+
+            button.marca {
+                padding: 17px 0;
+            }
         }
     </style>
 </head>
 
 <body>
+
     <div class="tarjeta">
+
         {% if sin_pasante %}
+
+        <!-- =================================================
+             CUENTA SIN PASANTE
+        ================================================== -->
+
         <div class="encabezado">
-            <div class="saludo">Cuenta sin pasante</div>
-        </div>
-        <p class="aviso">
-            Tu usuario no está vinculado a ningún pasante, así que no puede marcar
-            asistencia. Ingresa con la cuenta de un pasante.
-        </p>
-        <div class="pie">
-            <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="salir">Cerrar sesión</button>
-            </form>
-        </div>
-        {% else %}
-        <div class="encabezado">
-            <div class="reloj" id="reloj">--:--</div>
-            <div class="fecha" id="fecha"></div>
-            <div class="saludo">Hola, {{ pasante.nombre }}</div>
-            <div class="area">{{ pasante.area }} · {{ pasante.identificador }}</div>
+
+            <div class="saludo">
+                Cuenta sin pasante
+            </div>
+
         </div>
 
+        <p class="aviso">
+            Tu usuario no está vinculado a ningún pasante,
+            así que no puede marcar asistencia.
+            Ingresa con la cuenta de un pasante.
+        </p>
+
+        <div class="pie">
+
+            <form method="post" action="{% url 'logout' %}">
+
+                {% csrf_token %}
+
+                <button type="submit" class="salir">
+                    Cerrar sesión
+                </button>
+
+            </form>
+
+        </div>
+
+        {% else %}
+
+        <!-- =================================================
+             ENCABEZADO DEL PASANTE
+        ================================================== -->
+
+        <div class="encabezado">
+
+            <div class="reloj" id="reloj">
+                --:--
+            </div>
+
+            <div class="fecha" id="fecha"></div>
+
+            <div class="saludo">
+                Hola, {{ pasante.nombre }}
+            </div>
+
+            <div class="area">
+                {{ pasante.area }} · {{ pasante.identificador }}
+            </div>
+
+        </div>
+
+        <!-- =================================================
+             RESULTADO DE LA MARCACIÓN
+        ================================================== -->
+
         {% if resultado %}
+
         <div class="banner {% if resultado.ok %}ok{% else %}error{% endif %}">
             {{ resultado.mensaje }}
         </div>
+
         {% endif %}
+
+        <!-- =================================================
+             MAPA
+        ================================================== -->
 
         <div id="mapa"></div>
-        <button type="button" class="btn-ubicacion" onclick="verMiUbicacion()">Ver mi ubicación en el mapa</button>
+
+        <button type="button" class="btn-ubicacion" onclick="verMiUbicacion()">
+            Ver mi ubicación en el mapa
+        </button>
+
         <div class="dist" id="dist"></div>
 
+        <!-- =================================================
+             FORMULARIO DE MARCACIÓN
+        ================================================== -->
+
         <form method="post" id="form-marca">
+
             {% csrf_token %}
+
             <input type="hidden" name="tipo" id="tipo">
+
             <input type="hidden" name="lat" id="lat">
+
             <input type="hidden" name="lng" id="lng">
 
+            <input type="hidden" name="dispositivo" id="dispositivo">
+
             <div class="botones">
-                <button type="button" class="marca btn-entrada" onclick="marcarAsistencia('ENTRADA')">ENTRADA</button>
-                <button type="button" class="marca btn-salida" onclick="marcarAsistencia('SALIDA')">SALIDA</button>
+
+                <button type="button" class="marca btn-entrada" onclick="marcarAsistencia('ENTRADA')">
+                    ENTRADA
+                </button>
+
+                <button type="button" class="marca btn-salida" onclick="marcarAsistencia('SALIDA')">
+                    SALIDA
+                </button>
+
             </div>
+
         </form>
 
-        <div class="estado" id="estado">Al marcar se pedirá tu ubicación.</div>
+        <div class="estado" id="estado">
+            Al marcar se pedirá tu ubicación.
+        </div>
+
+        <!-- =================================================
+             CERRAR SESIÓN
+        ================================================== -->
 
         <div class="pie">
+
             <form method="post" action="{% url 'logout' %}">
+
                 {% csrf_token %}
-                <button type="submit" class="salir">Cerrar sesión</button>
+
+                <button type="submit" class="salir">
+                    Cerrar sesión
+                </button>
+
             </form>
+
         </div>
+
         {% endif %}
+
     </div>
 
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
     <script>
-        // ----- Reloj en vivo -----
-        const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-            "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-        const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+        /*
+         * ====================================================
+         * IDENTIFICADOR ÚNICO DEL DISPOSITIVO
+         * ====================================================
+         *
+         * Se genera una sola vez y se guarda en localStorage.
+         */
+
+        (function () {
+
+            let id = null;
+
+            try {
+
+                id = localStorage.getItem(
+                    "dispositivo_id"
+                );
+
+            } catch (error) {
+
+                console.warn(
+                    "No se pudo acceder a localStorage.",
+                    error
+                );
+
+            }
+
+            /*
+             * Si no existe un identificador,
+             * generamos uno nuevo.
+             */
+
+            if (!id) {
+
+                if (
+                    window.crypto &&
+                    typeof window.crypto.randomUUID === "function"
+                ) {
+
+                    id = window.crypto.randomUUID();
+
+                } else {
+
+                    id =
+                        "dev-" +
+                        Date.now() +
+                        "-" +
+                        Math.random()
+                            .toString(36)
+                            .substring(2);
+
+                }
+
+                try {
+
+                    localStorage.setItem(
+                        "dispositivo_id",
+                        id
+                    );
+
+                } catch (error) {
+
+                    console.warn(
+                        "No se pudo guardar el identificador.",
+                        error
+                    );
+
+                }
+
+            }
+
+            /*
+             * Colocar el ID en el formulario.
+             */
+
+            const campo =
+                document.getElementById(
+                    "dispositivo"
+                );
+
+            if (campo) {
+
+                campo.value = id;
+
+            }
+
+        })();
+
+
+        /*
+         * ====================================================
+         * RELOJ EN VIVO
+         * ====================================================
+         */
+
+        const meses = [
+            "enero",
+            "febrero",
+            "marzo",
+            "abril",
+            "mayo",
+            "junio",
+            "julio",
+            "agosto",
+            "septiembre",
+            "octubre",
+            "noviembre",
+            "diciembre"
+        ];
+
+        const dias = [
+            "domingo",
+            "lunes",
+            "martes",
+            "miércoles",
+            "jueves",
+            "viernes",
+            "sábado"
+        ];
+
+
         function actualizarReloj() {
-            const a = new Date();
-            const r = document.getElementById("reloj");
-            if (!r) return;
-            r.textContent = `${String(a.getHours()).padStart(2, "0")}:${String(a.getMinutes()).padStart(2, "0")}:${String(a.getSeconds()).padStart(2, "0")}`;
-            document.getElementById("fecha").textContent =
-                `${dias[a.getDay()]}, ${a.getDate()} de ${meses[a.getMonth()]} de ${a.getFullYear()}`;
+
+            const ahora = new Date();
+
+            const reloj =
+                document.getElementById(
+                    "reloj"
+                );
+
+            const fecha =
+                document.getElementById(
+                    "fecha"
+                );
+
+            /*
+             * Si estamos en la pantalla
+             * "sin pasante", no existen estos elementos.
+             */
+
+            if (!reloj || !fecha) {
+
+                return;
+
+            }
+
+            const horas =
+                String(
+                    ahora.getHours()
+                ).padStart(2, "0");
+
+            const minutos =
+                String(
+                    ahora.getMinutes()
+                ).padStart(2, "0");
+
+            const segundos =
+                String(
+                    ahora.getSeconds()
+                ).padStart(2, "0");
+
+
+            reloj.textContent =
+                `${horas}:${minutos}:${segundos}`;
+
+
+            fecha.textContent =
+                `${dias[ahora.getDay()]}, ` +
+                `${ahora.getDate()} de ` +
+                `${meses[ahora.getMonth()]} de ` +
+                `${ahora.getFullYear()}`;
+
         }
+
+
         actualizarReloj();
-        setInterval(actualizarReloj, 1000);
+
+        setInterval(
+            actualizarReloj,
+            1000
+        );
+
+
+        /*
+         * ====================================================
+         * CONFIGURACIÓN DEL MAPA
+         * ====================================================
+         */
 
         {% if not sin_pasante %}
-        // ----- Mapa de la institución -----
-        const instLat = {{ institucion_lat| unlocalize }};
-        const instLng = {{ institucion_lng| unlocalize }};
-        const radio = {{ radio| unlocalize }};
 
-        const map = L.map("mapa").setView([instLat, instLng], 16);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap", maxZoom: 19
-        }).addTo(map);
+        const instLat =
+            {{ institucion_lat| unlocalize }};
 
-        // Punto de la institución + círculo del radio permitido
-        L.circleMarker([instLat, instLng], {
-            radius: 8, color: "#17803d", fillColor: "#17803d", fillOpacity: 1
-        }).addTo(map).bindPopup("Institución");
+        const instLng =
+            {{ institucion_lng| unlocalize }};
 
-        const circulo = L.circle([instLat, instLng], {
-            radius: radio, color: "#17803d", fillColor: "#17803d", fillOpacity: 0.12
-        }).addTo(map);
+        const radio =
+            {{ radio| unlocalize }};
 
-        map.fitBounds(circulo.getBounds());
+
+        /*
+         * Crear mapa.
+         */
+
+        const mapa =
+            L.map("mapa").setView(
+                [instLat, instLng],
+                16
+            );
+
+
+        /*
+         * Mapa de OpenStreetMap.
+         */
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution:
+                    "© OpenStreetMap",
+
+                maxZoom: 19
+            }
+        ).addTo(mapa);
+
+
+        /*
+         * ====================================================
+         * MARCADOR DE LA INSTITUCIÓN
+         * ====================================================
+         */
+
+        L.circleMarker(
+            [instLat, instLng],
+            {
+                radius: 8,
+
+                color: "#17803d",
+
+                fillColor: "#17803d",
+
+                fillOpacity: 1
+            }
+        )
+            .addTo(mapa)
+            .bindPopup(
+                "Institución"
+            );
+
+
+        /*
+         * ====================================================
+         * RADIO PERMITIDO
+         * ====================================================
+         */
+
+        const circulo =
+            L.circle(
+                [instLat, instLng],
+                {
+                    radius: radio,
+
+                    color: "#17803d",
+
+                    fillColor: "#17803d",
+
+                    fillOpacity: 0.12
+                }
+            )
+                .addTo(mapa);
+
+
+        /*
+         * Ajustar automáticamente el mapa
+         * al área permitida.
+         */
+
+        mapa.fitBounds(
+            circulo.getBounds()
+        );
+
+
+        /*
+         * Marcador del usuario.
+         */
 
         let miMarcador = null;
+
+
+        /*
+         * ====================================================
+         * OBTENER UBICACIÓN DEL USUARIO
+         * ====================================================
+         */
+
         function verMiUbicacion() {
-            const dist = document.getElementById("dist");
-            if (!navigator.geolocation) {
-                dist.textContent = "Tu dispositivo no permite geolocalización.";
+
+            const dist =
+                document.getElementById(
+                    "dist"
+                );
+
+
+            /*
+             * Comprobar soporte GPS.
+             */
+
+            if (
+                !navigator.geolocation
+            ) {
+
+                dist.textContent =
+                    "Tu dispositivo no permite geolocalización.";
+
+                dist.className =
+                    "dist";
+
                 return;
+
             }
-            dist.textContent = "Obteniendo tu ubicación…";
-            dist.className = "dist";
+
+
+            dist.textContent =
+                "Obteniendo tu ubicación…";
+
+            dist.className =
+                "dist";
+
+
             navigator.geolocation.getCurrentPosition(
+
                 function (pos) {
-                    const lat = pos.coords.latitude, lng = pos.coords.longitude;
-                    if (miMarcador) map.removeLayer(miMarcador);
-                    miMarcador = L.circleMarker([lat, lng], {
-                        radius: 8, color: "#1f5fbf", fillColor: "#1f5fbf", fillOpacity: 1
-                    }).addTo(map).bindPopup("Tú");
 
-                    const d = map.distance([lat, lng], [instLat, instLng]);
-                    const dentro = d <= radio;
-                    dist.textContent = `Estás a ${d.toFixed(0)} m — ${dentro ? "dentro del rango ✓" : "fuera del rango ✗"}`;
-                    dist.className = "dist " + (dentro ? "dentro" : "fuera");
+                    const lat =
+                        pos.coords.latitude;
 
-                    map.fitBounds(L.featureGroup([circulo, miMarcador]).getBounds().pad(0.2));
-                },
-                function () {
-                    dist.textContent = "No se pudo obtener tu ubicación.";
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        }
+                    const lng =
+                        pos.coords.longitude;
 
-        // ----- Marcación con ubicación -----
-        function marcarAsistencia(tipo) {
-            const estado = document.getElementById("estado");
-            const botones = document.querySelectorAll("button.marca");
-            if (!navigator.geolocation) {
-                estado.textContent = "Tu dispositivo no permite geolocalización.";
-                return;
-            }
-            botones.forEach(b => b.disabled = true);
-            estado.textContent = "Obteniendo tu ubicación…";
-            document.getElementById("tipo").value = tipo;
-            navigator.geolocation.getCurrentPosition(
-                function (pos) {
-                    document.getElementById("lat").value = pos.coords.latitude;
-                    document.getElementById("lng").value = pos.coords.longitude;
-                    estado.textContent = "Ubicación obtenida. Registrando…";
-                    document.getElementById("form-marca").submit();
-                },
-                function (err) {
-                    botones.forEach(b => b.disabled = false);
-                    if (err.code === 1) {
-                        estado.textContent = "Necesitas permitir el acceso a tu ubicación para marcar.";
-                    } else {
-                        estado.textContent = "No se pudo obtener tu ubicación. Intenta de nuevo.";
+
+                    /*
+                     * Eliminar marcador anterior.
+                     */
+
+                    if (miMarcador) {
+
+                        mapa.removeLayer(
+                            miMarcador
+                        );
+
                     }
+
+
+                    /*
+                     * Crear marcador del usuario.
+                     */
+
+                    miMarcador =
+                        L.circleMarker(
+                            [lat, lng],
+                            {
+                                radius: 8,
+
+                                color: "#1f5fbf",
+
+                                fillColor: "#1f5fbf",
+
+                                fillOpacity: 1
+                            }
+                        )
+                            .addTo(mapa)
+                            .bindPopup(
+                                "Tu ubicación"
+                            );
+
+
+                    /*
+                     * Calcular distancia.
+                     */
+
+                    const distancia =
+                        mapa.distance(
+                            [lat, lng],
+                            [instLat, instLng]
+                        );
+
+
+                    /*
+                     * Comprobar si está dentro
+                     * del radio permitido.
+                     */
+
+                    const dentro =
+                        distancia <= radio;
+
+
+                    /*
+                     * Mostrar resultado.
+                     */
+
+                    dist.textContent =
+                        `Estás a ${distancia.toFixed(0)} m — ` +
+                        `${dentro
+                            ? "dentro del rango ✓"
+                            : "fuera del rango ✗"
+                        }`;
+
+
+                    dist.className =
+                        "dist " +
+                        (
+                            dentro
+                                ? "dentro"
+                                : "fuera"
+                        );
+
+
+                    /*
+                     * Mostrar usuario + institución
+                     * en el mapa.
+                     */
+
+                    mapa.fitBounds(
+
+                        L.featureGroup([
+                            circulo,
+                            miMarcador
+                        ])
+                            .getBounds()
+                            .pad(0.2)
+
+                    );
+
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+
+
+                function (error) {
+
+                    console.error(
+                        "Error de geolocalización:",
+                        error
+                    );
+
+
+                    switch (error.code) {
+
+                        case 1:
+
+                            dist.textContent =
+                                "Debes permitir el acceso a tu ubicación.";
+
+                            break;
+
+
+                        case 2:
+
+                            dist.textContent =
+                                "No se pudo determinar tu ubicación.";
+
+                            break;
+
+
+                        case 3:
+
+                            dist.textContent =
+                                "La ubicación tardó demasiado. Intenta nuevamente.";
+
+                            break;
+
+
+                        default:
+
+                            dist.textContent =
+                                "No se pudo obtener tu ubicación.";
+
+                    }
+
+
+                    dist.className =
+                        "dist";
+
+                },
+
+
+                {
+                    enableHighAccuracy: true,
+
+                    timeout: 10000,
+
+                    maximumAge: 0
+                }
+
             );
+
         }
+
+
+        /*
+         * ====================================================
+         * MARCAR ASISTENCIA
+         * ====================================================
+         */
+
+        function marcarAsistencia(tipo) {
+
+            const estado =
+                document.getElementById(
+                    "estado"
+                );
+
+            const botones =
+                document.querySelectorAll(
+                    "button.marca"
+                );
+
+
+            /*
+             * Comprobar GPS.
+             */
+
+            if (
+                !navigator.geolocation
+            ) {
+
+                estado.textContent =
+                    "Tu dispositivo no permite geolocalización.";
+
+                return;
+
+            }
+
+
+            /*
+             * Desactivar botones para evitar
+             * doble marcación.
+             */
+
+            botones.forEach(
+                function (boton) {
+
+                    boton.disabled = true;
+
+                }
+            );
+
+
+            estado.textContent =
+                "Obteniendo tu ubicación…";
+
+
+            /*
+             * Guardar tipo de marcación.
+             */
+
+            document.getElementById(
+                "tipo"
+            ).value = tipo;
+
+
+            /*
+             * Obtener GPS.
+             */
+
+            navigator.geolocation.getCurrentPosition(
+
+                function (pos) {
+
+                    const lat =
+                        pos.coords.latitude;
+
+                    const lng =
+                        pos.coords.longitude;
+
+
+                    /*
+                     * Guardar coordenadas.
+                     */
+
+                    document.getElementById(
+                        "lat"
+                    ).value = lat;
+
+
+                    document.getElementById(
+                        "lng"
+                    ).value = lng;
+
+
+                    /*
+                     * Mostrar estado.
+                     */
+
+                    estado.textContent =
+                        "Ubicación obtenida. Registrando…";
+
+
+                    /*
+                     * Enviar formulario.
+                     */
+
+                    document.getElementById(
+                        "form-marca"
+                    ).submit();
+
+                },
+
+
+                function (error) {
+
+                    /*
+                     * Volver a activar botones
+                     * si ocurrió un error.
+                     */
+
+                    botones.forEach(
+                        function (boton) {
+
+                            boton.disabled = false;
+
+                        }
+                    );
+
+
+                    console.error(
+                        "Error GPS:",
+                        error
+                    );
+
+
+                    switch (error.code) {
+
+                        case 1:
+
+                            estado.textContent =
+                                "Necesitas permitir el acceso a tu ubicación para marcar.";
+
+                            break;
+
+
+                        case 2:
+
+                            estado.textContent =
+                                "No se pudo determinar tu ubicación. Verifica el GPS.";
+
+                            break;
+
+
+                        case 3:
+
+                            estado.textContent =
+                                "La ubicación tardó demasiado. Intenta nuevamente.";
+
+                            break;
+
+
+                        default:
+
+                            estado.textContent =
+                                "No se pudo obtener tu ubicación. Intenta de nuevo.";
+
+                    }
+
+                },
+
+
+                {
+                    enableHighAccuracy: true,
+
+                    timeout: 10000,
+
+                    maximumAge: 0
+                }
+
+            );
+
+        }
+
         {% endif %}
+
     </script>
+
 </body>
 
 </html>

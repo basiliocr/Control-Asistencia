@@ -1,0 +1,43 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Administradores{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+    <h1>Administradores</h1>
+    <a class="btn btn-verde" href="{% url 'admin_nuevo' %}">+ Nuevo administrador</a>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Nombre</th>
+            <th>Nivel</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in admins %}
+        <tr>
+            <td>{{ a.username }}{% if a.pk == request.user.pk %} (tú){% endif %}</td>
+            <td>{{ a.first_name|default:"—" }}</td>
+            <td>
+                {% if a.is_superuser %}Superusuario{% else %}Administrador{% endif %}
+            </td>
+            <td>{% if a.is_active %}Activo{% else %}<span class="baja">Inactivo</span>{% endif %}</td>
+            <td class="acciones">
+                <a class="a-editar" href="{% url 'admin_editar' a.pk %}">Editar</a>
+                {% if a.pk != request.user.pk %}
+                <a class="a-eliminar" href="{% url 'admin_eliminar' a.pk %}">Eliminar</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="text-align:center;color:#5c7370;padding:26px;">No hay administradores registrados.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

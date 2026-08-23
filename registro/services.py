@@ -1,3 +1,9 @@
+"""
+Lógica central de marcación de asistencia.
+Valida ubicación (GPS) y dispositivo (celular vinculado) antes de registrar.
+La hora la pone el servidor. Las coordenadas de cada marca se guardan.
+"""
+
 from datetime import datetime, timedelta
 from math import radians, sin, cos, asin, sqrt
 
@@ -15,7 +21,6 @@ class ResultadoMarca:
 
 
 def distancia_metros(lat1, lng1, lat2, lng2):
-    """Distancia en metros entre dos coordenadas (fórmula de Haversine)."""
     R = 6371000
     dlat = radians(lat2 - lat1)
     dlng = radians(lng2 - lng1)
@@ -26,8 +31,29 @@ def distancia_metros(lat1, lng1, lat2, lng2):
     return 2 * R * asin(sqrt(a))
 
 
-def registrar_con_gps(pasante, tipo, lat, lng):
-    """Valida que el pasante esté dentro del radio configurado antes de registrar."""
+def registrar_con_gps(pasante, tipo, lat, lng, dispositivo=None):
+    # --- 1. Validar el dispositivo (celular vinculado) ---
+    dispositivo = (dispositivo or "").strip()
+    if not dispositivo:
+        return ResultadoMarca(
+            False,
+            "No se pudo identificar tu dispositivo. Recarga la página e intenta de nuevo.",
+        )
+
+    if not pasante.dispositivo_id:
+        # Primera vez: se vincula este celular al pasante.
+        pasante.dispositivo_id = dispositivo
+        pasante.save(update_fields=["dispositivo_id"])
+    elif pasante.dispositivo_id != dispositivo:
+        # Ya tiene un celular registrado y este es otro: se rechaza.
+        return ResultadoMarca(
+            False,
+            "Este no es el dispositivo registrado para tu cuenta. Solo puedes marcar "
+            "desde tu celular vinculado. Si cambiaste de teléfono, pide a un administrador "
+            "que reinicie tu dispositivo.",
+        )
+
+    # --- 2. Validar la ubicación (GPS) ---
     try:
         lat = float(lat)
         lng = float(lng)
@@ -38,7 +64,6 @@ def registrar_con_gps(pasante, tipo, lat, lng):
 
     inst = Institucion.obtener()
     distancia = distancia_metros(lat, lng, inst.latitud, inst.longitud)
-
     if distancia > inst.radio_metros:
         return ResultadoMarca(
             False,
@@ -46,18 +71,18 @@ def registrar_con_gps(pasante, tipo, lat, lng):
             f"(máximo permitido: {inst.radio_metros} m). Acércate para poder marcar.",
         )
 
-    return registrar_marca(pasante, tipo)
+    return registrar_marca(pasante, tipo, lat, lng)
 
 
-def registrar_marca(pasante, tipo):
+def registrar_marca(pasante, tipo, lat=None, lng=None):
     ahora = timezone.localtime()
     hoy = ahora.date()
     hora_actual = ahora.time()
 
     if tipo == "ENTRADA":
-        return _registrar_entrada(pasante, hoy, hora_actual)
+        return _registrar_entrada(pasante, hoy, hora_actual, lat, lng)
     elif tipo == "SALIDA":
-        return _registrar_salida(pasante, hoy, hora_actual)
+        return _registrar_salida(pasante, hoy, hora_actual, lat, lng)
     else:
         return ResultadoMarca(False, "Tipo de marca inválido.")
 
@@ -83,7 +108,7 @@ def _calcular_tardanza(pasante, fecha, hora_llegada):
     return int((llegada_dt - esperada_dt).total_seconds() // 60)
 
 
-def _registrar_entrada(pasante, hoy, hora_actual):
+def _registrar_entrada(pasante, hoy, hora_actual, lat=None, lng=None):
     asistencia = Asistencia.objects.filter(pasante=pasante, fecha=hoy).first()
 
     if asistencia and asistencia.hora_entrada:
@@ -102,6 +127,8 @@ def _registrar_entrada(pasante, hoy, hora_actual):
     asistencia.hora_entrada = hora_actual
     asistencia.tardanza_min = tardanza
     asistencia.estado = Asistencia.ESTADO_SIN_SALIDA
+    asistencia.lat_entrada = lat
+    asistencia.lng_entrada = lng
     asistencia.save()
 
     hora_txt = hora_actual.strftime("%H:%M")
@@ -114,7 +141,7 @@ def _registrar_entrada(pasante, hoy, hora_actual):
     return ResultadoMarca(True, mensaje, asistencia)
 
 
-def _registrar_salida(pasante, hoy, hora_actual):
+def _registrar_salida(pasante, hoy, hora_actual, lat=None, lng=None):
     asistencia = Asistencia.objects.filter(pasante=pasante, fecha=hoy).first()
 
     if asistencia is None or not asistencia.hora_entrada:
@@ -133,6 +160,8 @@ def _registrar_salida(pasante, hoy, hora_actual):
 
     asistencia.hora_salida = hora_actual
     asistencia.estado = Asistencia.ESTADO_COMPLETO
+    asistencia.lat_salida = lat
+    asistencia.lng_salida = lng
     asistencia.save()
 
     return ResultadoMarca(

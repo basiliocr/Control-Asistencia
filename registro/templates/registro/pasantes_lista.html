@@ -29,6 +29,7 @@
             <td class="acciones">
                 <a class="a-editar" href="{% url 'pasante_editar' p.pk %}">Editar</a>
                 <a class="a-eliminar" href="{% url 'pasante_eliminar' p.pk %}">Eliminar</a>
+                <a class="a-editar" href="{% url 'pasante_reset_dispositivo' p.pk %}">Reiniciar celular</a>
             </td>
         </tr>
         {% empty %}

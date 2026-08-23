@@ -262,6 +262,7 @@
             <a href="{% url 'panel' %}">Panel</a>
             <a href="{% url 'pasantes_lista' %}">Pasantes</a>
             <a href="{% url 'reportes' %}">Reportes</a>
+            <a href="{% url 'admins_lista' %}">Admins</a>
         </nav>
         <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}

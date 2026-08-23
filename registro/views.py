@@ -1,7 +1,5 @@
-import base64
 from io import BytesIO
 
-import qrcode
 import openpyxl
 from openpyxl.styles import Font, PatternFill
 
@@ -14,7 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
 from .models import Pasante, Asistencia, Institucion, DiaEspecial, Correccion
-from .forms import PasanteForm, AsistenciaForm, DiaEspecialForm
+from .forms import PasanteForm, AsistenciaForm, DiaEspecialForm, AdminUserForm
 from .services import registrar_con_gps
 
 
@@ -29,12 +27,11 @@ def marcar(request):
     pasante = request.user.pasante
     resultado = None
     if request.method == "POST":
-        resultado = registrar_con_gps(
-            pasante,
-            request.POST.get("tipo"),
-            request.POST.get("lat"),
-            request.POST.get("lng"),
-        )
+        tipo = request.POST.get("tipo")
+        lat = request.POST.get("lat")
+        lng = request.POST.get("lng")
+        dispositivo = request.POST.get("dispositivo")
+        resultado = registrar_con_gps(pasante, tipo, lat, lng, dispositivo)
 
     inst = Institucion.obtener()
     return render(
@@ -293,6 +290,12 @@ def reportes(request):
     )
 
 
+def _coord(lat, lng):
+    if lat is None or lng is None:
+        return ""
+    return f"{lat:.5f}, {lng:.5f}"
+
+
 def _exportar_excel(asistencias, desde, hasta):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -307,6 +310,8 @@ def _exportar_excel(asistencias, desde, hasta):
             "Salida",
             "Tardanza (min)",
             "Estado",
+            "Ubicación ingreso",
+            "Ubicación salida",
         ]
     )
     fuente = Font(bold=True, color="FFFFFF")
@@ -325,9 +330,11 @@ def _exportar_excel(asistencias, desde, hasta):
                 a.hora_salida.strftime("%H:%M") if a.hora_salida else "",
                 a.tardanza_min,
                 a.get_estado_display(),
+                _coord(a.lat_entrada, a.lng_entrada),
+                _coord(a.lat_salida, a.lng_salida),
             ]
         )
-    for i, ancho in enumerate([22, 14, 16, 12, 10, 10, 14, 20], start=1):
+    for i, ancho in enumerate([22, 14, 16, 12, 9, 9, 12, 18, 22, 22], start=1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = ancho
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -339,14 +346,108 @@ def _exportar_excel(asistencias, desde, hasta):
     return response
 
 
+def admins_lista(request):
+    admins = User.objects.filter(is_staff=True).order_by("username")
+    return render(request, "registro/admins_lista.html", {"admins": admins})
+
+
 @staff_member_required
-def planilla_pdf(request):
-    """Genera la planilla oficial (PDF) de UN pasante en un rango de fechas."""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
+def admin_form(request, pk=None):
+    admin_user = get_object_or_404(User, pk=pk, is_staff=True) if pk else None
+
+    if request.method == "POST":
+        form = AdminUserForm(request.POST, instance=admin_user)
+        if form.is_valid():
+            password = form.cleaned_data["password"]
+
+            if admin_user is None:
+                if not password:
+                    form.add_error(
+                        "password",
+                        "La contraseña es obligatoria al crear un administrador.",
+                    )
+                else:
+                    obj = form.save(commit=False)
+                    obj.is_staff = True
+                    obj.set_password(password)
+                    obj.save()
+                    messages.success(request, f"Administrador «{obj.username}» creado.")
+                    return redirect("admins_lista")
+            else:
+                # Protección: nadie se desactiva ni se quita superusuario a sí mismo.
+                if admin_user.pk == request.user.pk:
+                    form.instance.is_active = True
+                    if (
+                        not form.cleaned_data.get("is_superuser")
+                        and admin_user.is_superuser
+                    ):
+                        messages.error(
+                            request,
+                            "No puedes quitarte tus propios permisos de superusuario.",
+                        )
+                        return render(
+                            request,
+                            "registro/admin_form.html",
+                            {"form": form, "admin_user": admin_user},
+                        )
+
+                obj = form.save(commit=False)
+                obj.is_staff = True
+                if password:
+                    obj.set_password(password)
+                obj.save()
+                messages.success(
+                    request, f"Administrador «{obj.username}» actualizado."
+                )
+                return redirect("admins_lista")
+    else:
+        form = AdminUserForm(instance=admin_user)
+
+    return render(
+        request, "registro/admin_form.html", {"form": form, "admin_user": admin_user}
+    )
+
+
+@staff_member_required
+def admin_eliminar(request, pk):
+    admin_user = get_object_or_404(User, pk=pk, is_staff=True)
+
+    if admin_user.pk == request.user.pk:
+        messages.error(request, "No puedes eliminar tu propia cuenta.")
+        return redirect("admins_lista")
+
+    if request.method == "POST":
+        nombre = admin_user.username
+        admin_user.delete()
+        messages.success(request, f"Administrador «{nombre}» eliminado.")
+        return redirect("admins_lista")
+
+    return render(request, "registro/admin_eliminar.html", {"admin_user": admin_user})
+
+
+@staff_member_required
+def pasante_reset_dispositivo(request, pk):
+    pasante = get_object_or_404(Pasante, pk=pk)
+    pasante.dispositivo_id = ""
+    pasante.save(update_fields=["dispositivo_id"])
+    messages.success(
+        request,
+        f"Dispositivo de «{pasante.nombre}» reiniciado. Podrá vincular un celular nuevo en su próxima marca.",
+    )
+    return redirect("pasantes_lista")
+
+
+@staff_member_required
+def planilla_word(request):
+    """Planilla oficial en PDF (formato El Alto): encabezado/pie con imagen,
+    sin columnas de FIRMA, recuadro de sello 2.7 x 3 cm, coordenadas en observaciones.
+    (El nombre de la función queda igual para no cambiar urls.py.)"""
+    import os
+    from reportlab.lib.pagesizes import LETTER
+    from reportlab.lib.units import mm, cm
     from reportlab.lib import colors
     from reportlab.lib.styles import ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
     from reportlab.platypus import (
         SimpleDocTemplate,
         Table,
@@ -368,61 +469,126 @@ def planilla_pdf(request):
     asistencias = Asistencia.objects.filter(
         pasante=pasante, fecha__gte=desde, fecha__lte=hasta
     ).order_by("fecha")
-    inst = Institucion.obtener()
-
     DIAS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+
+    base_img = os.path.join(os.path.dirname(__file__), "static", "img")
+    img_h = os.path.join(base_img, "encabezado_el_alto.png")
+    img_f = os.path.join(base_img, "pie_pagina.png")
+
+    def marco(canvas, doc):
+        W, H = LETTER
+        hw = W - 24 * mm
+        hh = hw * 0.1845
+        if os.path.exists(img_h):
+            canvas.drawImage(
+                img_h, 12 * mm, H - 8 * mm - hh, width=hw, height=hh, mask="auto"
+            )
+        fw = W - 24 * mm
+        fh = fw * 0.2267
+        if os.path.exists(img_f):
+            canvas.drawImage(img_f, 12 * mm, 2 * mm, width=fw, height=fh, mask="auto")
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
-        topMargin=18 * mm,
-        bottomMargin=18 * mm,
-        leftMargin=18 * mm,
-        rightMargin=18 * mm,
+        pagesize=LETTER,
+        topMargin=48 * mm,
+        bottomMargin=46 * mm,
+        leftMargin=12 * mm,
+        rightMargin=12 * mm,
     )
 
-    centro = ParagraphStyle(
-        "centro",
-        fontName="Helvetica-Bold",
-        fontSize=13,
-        alignment=TA_CENTER,
-        spaceAfter=4,
+    titulo = ParagraphStyle(
+        "t", fontName="Helvetica-Bold", fontSize=12, alignment=TA_CENTER, spaceAfter=10
     )
-    subt = ParagraphStyle(
-        "subt",
-        fontName="Helvetica-Bold",
-        fontSize=11,
-        alignment=TA_CENTER,
-        spaceAfter=10,
+    info = ParagraphStyle(
+        "i", fontName="Helvetica", fontSize=9, spaceAfter=3, leading=12
     )
-    info = ParagraphStyle("info", fontName="Helvetica", fontSize=10, spaceAfter=4)
+    info_b = ParagraphStyle("ib", fontName="Helvetica-Bold", fontSize=8, spaceAfter=3)
+    sello = ParagraphStyle(
+        "s",
+        fontName="Helvetica",
+        fontSize=6.5,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#777777"),
+    )
+    hcab = ParagraphStyle(
+        "h", fontName="Helvetica-Bold", fontSize=8, alignment=TA_CENTER, leading=10
+    )
+    obs_st = ParagraphStyle(
+        "o", fontName="Helvetica", fontSize=7, alignment=TA_LEFT, leading=8.5
+    )
 
-    elems = []
-    elems.append(Paragraph(inst.nombre.upper(), centro))
-    elems.append(
-        Paragraph("PLANILLA DE ASISTENCIA - TRABAJO DIRIGIDO O PASANTÍA", subt)
-    )
-    elems.append(Paragraph(f"<b>Dependencia / Área:</b> {pasante.area}", info))
-    elems.append(Paragraph(f"<b>Nombre del pasante:</b> {pasante.nombre}", info))
-    elems.append(Paragraph(f"<b>C.I.:</b> {pasante.ci}", info))
     d = timezone.datetime.fromisoformat(desde).strftime("%d/%m/%Y")
     h = timezone.datetime.fromisoformat(hasta).strftime("%d/%m/%Y")
-    elems.append(Paragraph(f"<b>Periodo:</b> del {d} al {h}", info))
-    elems.append(Spacer(1, 8))
 
-    data = [
-        [
-            "N\u00ba",
-            "DÍA",
+    elems = []
+    elems.append(
+        Paragraph("<u>PLANILLA DE ASISTENCIA TRABAJO DIRIGIDO O PASANTÍA</u>", titulo)
+    )
+
+    # Recuadro del sello: 2.7 cm de ancho x 3 cm de alto, con borde.
+    sello_inner = Table(
+        [[Paragraph("SELLO DE LA<br/>DEPENDENCIA", sello)]],
+        colWidths=[2.7 * cm],
+        rowHeights=[3 * cm],
+    )
+    sello_inner.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (0, 0), 0.8, colors.HexColor("#888888")),
+                ("VALIGN", (0, 0), (0, 0), "MIDDLE"),
+                ("ALIGN", (0, 0), (0, 0), "CENTER"),
+            ]
+        )
+    )
+
+    info_cell = [
+        Paragraph(f"<b>DEPENDENCIA:</b> {pasante.area}", info),
+        Spacer(1, 10),
+        Paragraph("<b>FIRMA Y SELLO DEL SUPERVISOR</b>", info_b),
+        Spacer(1, 6),
+        Paragraph(
+            f"<b>NOMBRE DEL PASANTE:</b> {pasante.nombre} &nbsp;&nbsp; <b>C.I.:</b> {pasante.ci}",
+            info,
+        ),
+        Paragraph(f"<b>FECHA DESDE EL MES DE:</b> {d} &nbsp; <b>AL:</b> {h}", info),
+    ]
+    htbl = Table([[info_cell, sello_inner]], colWidths=[132 * mm, 54 * mm])
+    htbl.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (1, 0), (1, 0), "CENTER"),
+            ]
+        )
+    )
+    elems.append(htbl)
+    elems.append(Spacer(1, 10))
+
+    # Tabla SIN columnas de FIRMA (7 columnas)
+    cab = [
+        Paragraph(t, hcab)
+        for t in [
+            "Nº",
+            "DIA",
             "FECHA",
-            "HORA DE\nINGRESO",
-            "HORA DE\nSALIDA",
+            "HORA DE<br/>INGRESO",
+            "HORA DE<br/>SALIDA",
             "OBSERVACIONES",
+            "VºBº<br/>SUPERVISOR",
         ]
     ]
+    data = [cab]
+
     for i, a in enumerate(asistencias, start=1):
-        obs = f"Tardanza: {a.tardanza_min} min" if a.tardanza_min else ""
+        obs = []
+        if a.lat_entrada is not None:
+            obs.append(f"Ing: {a.lat_entrada:.5f}, {a.lng_entrada:.5f}")
+        if a.lat_salida is not None:
+            obs.append(f"Sal: {a.lat_salida:.5f}, {a.lng_salida:.5f}")
+        if a.tardanza_min:
+            obs.append(f"Tard: {a.tardanza_min} min")
         data.append(
             [
                 str(i),
@@ -430,59 +596,39 @@ def planilla_pdf(request):
                 a.fecha.strftime("%d/%m/%y"),
                 a.hora_entrada.strftime("%H:%M") if a.hora_entrada else "",
                 a.hora_salida.strftime("%H:%M") if a.hora_salida else "",
-                obs,
+                Paragraph("<br/>".join(obs), obs_st),
+                "",
             ]
         )
-    for _ in range(max(0, 12 - len(asistencias))):
-        data.append(["", "", "", "", "", ""])
+    for _ in range(max(0, 14 - len(asistencias))):
+        data.append([""] * 7)
 
-    tabla = Table(
-        data, colWidths=[12 * mm, 28 * mm, 24 * mm, 30 * mm, 30 * mm, 48 * mm]
+    tbl = Table(
+        data,
+        colWidths=[9 * mm, 24 * mm, 20 * mm, 24 * mm, 24 * mm, 58 * mm, 27 * mm],
+        repeatRows=1,
     )
-    tabla.setStyle(
+    tbl.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#17803d")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("FONTSIZE", (0, 1), (-1, -1), 8.5),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ALIGN", (5, 0), (5, -1), "LEFT"),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                (
-                    "ROWBACKGROUNDS",
-                    (0, 1),
-                    (-1, -1),
-                    [colors.white, colors.HexColor("#f2f7f5")],
-                ),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ]
         )
     )
-    elems.append(tabla)
+    elems.append(tbl)
 
-    doc.build(elems)
+    doc.build(elems, onFirstPage=marco, onLaterPages=marco)
     pdf = buffer.getvalue()
     buffer.close()
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = (
-        f'attachment; filename="planilla_{pasante.identificador}.pdf"'
+        f'inline; filename="planilla_{pasante.identificador}.pdf"'
     )
     return response
-
-
-def _qr_base64(texto):
-    img = qrcode.make(texto)
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue()).decode()
-
-
-@staff_member_required
-def credenciales(request):
-    pasantes = Pasante.objects.filter(activo=True).order_by("nombre")
-    tarjetas = [{"pasante": p, "qr": _qr_base64(p.identificador)} for p in pasantes]
-    return render(request, "registro/credenciales.html", {"tarjetas": tarjetas})
