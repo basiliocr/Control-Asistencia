@@ -11,16 +11,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# --- Clave secreta: en producción se pone por variable de entorno ---
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-%o3nh$)y2h)j#^qsag1v-&2$o3w%^$ix@hr3zm!-)49tt+)wh&",
 )
 
-# --- DEBUG: True en local, False en el servidor (DJANGO_DEBUG=False) ---
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-# --- Hosts permitidos: en el servidor se pone tu dominio ---
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
 CSRF_TRUSTED_ORIGINS = [
@@ -91,47 +88,39 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/La_Paz"
 USE_I18N = True
 USE_TZ = True
 
 
-# Static files
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
-# Email (por consola; suficiente para el proyecto)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
-# Login / logout
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 
-# Seguridad de sesión
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600
 SESSION_SAVE_EVERY_REQUEST = True
 
 
-# Tolerancia de tardanza en minutos (0 = cualquier minuto tarde cuenta)
-TOLERANCIA_MINUTOS = 0
+# Tolerancia de tardanza en minutos
+TOLERANCIA_MINUTOS = 10
 
 
-# --- Ajustes que SOLO se activan en producción (DJANGO_DEBUG=False) ---
 if not DEBUG:
-    # Servir archivos estáticos comprimidos con WhiteNoise
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
         },
     }
-    # Forzar HTTPS
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

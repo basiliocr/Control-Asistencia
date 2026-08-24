@@ -41,11 +41,9 @@ def registrar_con_gps(pasante, tipo, lat, lng, dispositivo=None):
         )
 
     if not pasante.dispositivo_id:
-        # Primera vez: se vincula este celular al pasante.
         pasante.dispositivo_id = dispositivo
         pasante.save(update_fields=["dispositivo_id"])
     elif pasante.dispositivo_id != dispositivo:
-        # Ya tiene un celular registrado y este es otro: se rechaza.
         return ResultadoMarca(
             False,
             "Este no es el dispositivo registrado para tu cuenta. Solo puedes marcar "
@@ -53,7 +51,6 @@ def registrar_con_gps(pasante, tipo, lat, lng, dispositivo=None):
             "que reinicie tu dispositivo.",
         )
 
-    # --- 2. Validar la ubicación (GPS) ---
     try:
         lat = float(lat)
         lng = float(lng)

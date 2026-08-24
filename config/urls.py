@@ -4,8 +4,6 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from registro.forms import LoginConBloqueoForm
 
-# El admin de Django, cuando no hay sesión iniciada, muestra su propio login gris.
-# Con esta línea lo obligamos a usar NUESTRO login (el bonito) en su lugar.
 admin.site.login = login_required(admin.site.login)
 
 urlpatterns = [
