@@ -5,7 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar sesión</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --green: #16a05a;
+            --green-d: #0d7a43;
+            --deep-1: #0a2723;
+            --deep-2: #10403a;
+            --ink: #12332c;
+            --tenue: #6a847e;
+            --borde: #dbe5e3;
+            --rojo: #c0392b;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,9 +30,11 @@
 
         body {
             min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(160deg, #0f2f33, #123b40);
-            color: #10221f;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(1000px 500px at 50% -10%, #16554c 0%, transparent 60%),
+                linear-gradient(165deg, var(--deep-2), var(--deep-1));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -26,21 +44,33 @@
         .tarjeta {
             background: #fff;
             width: 100%;
-            max-width: 380px;
-            border-radius: 20px;
+            max-width: 384px;
+            border-radius: 22px;
             padding: 40px 34px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .marca-app {
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--green-d);
+            margin-bottom: 14px;
         }
 
         h1 {
-            font-size: 22px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 23px;
+            font-weight: 600;
             text-align: center;
             margin-bottom: 4px;
         }
 
         .sub {
             text-align: center;
-            color: #5c7370;
+            color: var(--tenue);
             font-size: 14px;
             margin-bottom: 28px;
         }
@@ -49,7 +79,7 @@
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: #5c7370;
+            color: var(--tenue);
             margin-bottom: 6px;
         }
 
@@ -57,59 +87,137 @@
             width: 100%;
             padding: 13px 15px;
             font-size: 16px;
-            border: 1.5px solid #d6e0de;
-            border-radius: 11px;
+            font-family: inherit;
+            border: 1.5px solid var(--borde);
+            border-radius: 12px;
             background: #fbfdfc;
             margin-bottom: 18px;
+            transition: border-color .15s, box-shadow .15s;
         }
 
         input:focus {
-            outline: 2px solid #1f5fbf;
-            border-color: #1f5fbf;
+            outline: none;
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(22, 160, 90, .16);
+        }
+
+        input:disabled {
+            background: #eef1f0;
+            color: #9aa8a3;
+            cursor: not-allowed;
         }
 
         button {
             width: 100%;
             border: none;
-            border-radius: 12px;
+            border-radius: 13px;
             padding: 15px;
             font-size: 16px;
             font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: .02em;
             color: #fff;
-            background: #17803d;
+            background: linear-gradient(160deg, var(--green), var(--green-d));
+            box-shadow: 0 10px 22px rgba(13, 122, 67, .28);
             cursor: pointer;
+            transition: transform .08s, filter .15s;
         }
 
         button:hover {
-            background: #146c34;
+            filter: brightness(1.05);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            background: #c8d3ce;
+            box-shadow: none;
+            cursor: not-allowed;
+            filter: none;
         }
 
         .error {
-            background: #fdeaea;
-            border-left: 4px solid #c0392b;
-            color: #8f291f;
-            border-radius: 10px;
+            background: #fcebe9;
+            border-left: 4px solid var(--rojo);
+            color: #a5342a;
+            border-radius: 11px;
             padding: 12px 14px;
             font-size: 14px;
+            font-weight: 500;
             margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        /* Caja del contador de bloqueo */
+        .bloqueo {
+            background: #fff5e9;
+            border: 1px solid #f2d3a0;
+            border-radius: 14px;
+            padding: 18px 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .bloqueo .texto {
+            font-size: 13.5px;
+            color: #9a5a12;
+            font-weight: 500;
+            line-height: 1.45;
+            margin-bottom: 10px;
+        }
+
+        .bloqueo .cuenta {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 40px;
+            font-weight: 600;
+            color: #b9701c;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: .02em;
+        }
+
+        .bloqueo.libre {
+            background: #e7f6ec;
+            border-color: #9fd7b4;
+        }
+
+        .bloqueo.libre .texto {
+            color: #0f5128;
+            margin: 0;
+        }
+
+        :focus-visible {
+            outline: 3px solid #57c79a;
+            outline-offset: 2px;
         }
     </style>
 </head>
 
 <body>
     <div class="tarjeta">
-        <h1>Registro de Asistencia</h1>
-        <p class="sub">Inicia sesión para marcar</p>
+        <div class="marca-app">Registro de asistencia</div>
+        <h1>Iniciar sesión</h1>
+        <p class="sub">Ingresa para marcar tu asistencia</p>
+
+        <!-- Caja del contador (se muestra con JavaScript si hay bloqueo) -->
+        <div id="bloqueo" class="bloqueo" hidden>
+            <div class="texto">
+                Demasiados intentos fallidos. Podrás intentar de nuevo en:
+            </div>
+            <div class="cuenta" id="cuenta">00:00</div>
+        </div>
 
         {% if form.non_field_errors %}
         {% for e in form.non_field_errors %}
-        <div class="error">{{ e }}</div>
+        <div class="error error-login">{{ e }}</div>
         {% endfor %}
         {% elif form.errors %}
         <div class="error">Usuario o contraseña incorrectos. Intenta de nuevo.</div>
         {% endif %}
 
-        <form method="post">
+        <form method="post" id="form-login">
             {% csrf_token %}
             <label for="id_username">Usuario</label>
             <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
@@ -117,9 +225,68 @@
             <label for="id_password">Contraseña</label>
             <input type="password" name="password" id="id_password" autocomplete="current-password" required>
 
-            <button type="submit">Entrar</button>
+            <button type="submit" id="btn-entrar">Entrar</button>
         </form>
     </div>
+
+    <script>
+        (function () {
+            // Buscar en los mensajes de error si la cuenta está bloqueada
+            // y cuántos segundos faltan (el mensaje dice "... en X segundos").
+            let segundos = 0;
+            document.querySelectorAll(".error-login").forEach(function (el) {
+                const m = el.textContent.match(/(\d+)\s*segundo/i);
+                if (m) {
+                    segundos = parseInt(m[1], 10);
+                    el.style.display = "none"; // ocultamos el texto estático
+                }
+            });
+
+            if (segundos > 0) {
+                iniciarBloqueo(segundos);
+            }
+
+            function iniciarBloqueo(seg) {
+                const usuario = document.getElementById("id_username");
+                const clave = document.getElementById("id_password");
+                const boton = document.getElementById("btn-entrar");
+                const caja = document.getElementById("bloqueo");
+                const cuenta = document.getElementById("cuenta");
+
+                // Bloquear los campos y el botón
+                [usuario, clave, boton].forEach(function (x) {
+                    if (x) x.disabled = true;
+                });
+                caja.hidden = false;
+
+                let restante = seg;
+
+                function pintar() {
+                    const mm = String(Math.floor(restante / 60)).padStart(2, "0");
+                    const ss = String(restante % 60).padStart(2, "0");
+                    cuenta.textContent = mm + ":" + ss;
+                }
+                pintar();
+
+                const temporizador = setInterval(function () {
+                    restante -= 1;
+                    if (restante <= 0) {
+                        clearInterval(temporizador);
+                        // Desbloquear todo
+                        [usuario, clave, boton].forEach(function (x) {
+                            if (x) x.disabled = false;
+                        });
+                        caja.classList.add("libre");
+                        caja.innerHTML =
+                            '<div class="texto">Ya puedes intentar de nuevo.</div>';
+                        usuario.focus();
+                    } else {
+                        pintar();
+                    }
+                }, 1000);
+            }
+        })();
+    </script>
 </body>
 
 </html>

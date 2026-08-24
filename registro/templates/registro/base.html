@@ -5,15 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}Administración{% endblock %} · Asistencia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --verde: #17803d;
-            --verde-h: #146c34;
-            --azul: #1f5fbf;
-            --teal: #0f2f33;
-            --tenue: #5c7370;
-            --borde: #dbe5e3;
+            --green: #16a05a;
+            --green-d: #0d7a43;
+            --deep-1: #0a2723;
+            --deep-2: #10403a;
+            --azul: #1f6fce;
+            --tenue: #6a847e;
+            --borde: #e4ede9;
             --rojo: #c0392b;
+            --ink: #12332c;
+            --radius: 16px;
+            --shadow: 0 10px 30px rgba(15, 45, 40, .07);
         }
 
         * {
@@ -23,99 +32,125 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #eef2f1;
-            color: #10221f;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #eef3f1;
+            color: var(--ink);
             min-height: 100vh;
         }
 
         .barra {
-            background: linear-gradient(160deg, #0f2f33, #123b40);
+            background: linear-gradient(165deg, var(--deep-2), var(--deep-1));
             color: #fff;
-            padding: 16px 28px;
+            padding: 15px 28px;
             display: flex;
             align-items: center;
             gap: 24px;
         }
 
         .barra .logo {
+            font-family: "Space Grotesk", sans-serif;
             font-weight: 700;
             font-size: 16px;
+            letter-spacing: .01em;
             text-decoration: none;
             color: #fff;
         }
 
         .barra nav {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             flex: 1;
         }
 
         .barra nav a {
-            color: rgba(255, 255, 255, 0.85);
+            color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
             font-size: 14px;
+            font-weight: 500;
             padding: 8px 14px;
-            border-radius: 8px;
+            border-radius: 9px;
+            transition: background .15s, color .15s;
         }
 
         .barra nav a:hover,
         .barra nav a.activo {
-            background: rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.13);
             color: #fff;
         }
 
         .barra .salir {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.22);
             color: #fff;
-            border-radius: 8px;
+            border-radius: 9px;
             padding: 8px 14px;
             font-size: 13px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
+            transition: background .15s;
+        }
+
+        .barra .salir:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .contenedor {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 28px;
+            padding: 30px 28px 48px;
         }
 
         .cabecera {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 22px;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
         }
 
         .cabecera h1 {
-            font-size: 22px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -.01em;
         }
 
         .btn {
             border: none;
-            border-radius: 10px;
+            border-radius: 11px;
             padding: 11px 18px;
             font-size: 14px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
+            transition: transform .08s, filter .15s, background .15s;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
         }
 
         .btn-verde {
-            background: var(--verde);
+            background: linear-gradient(160deg, var(--green), var(--green-d));
             color: #fff;
+            box-shadow: 0 6px 16px rgba(13, 122, 67, .22);
         }
 
         .btn-verde:hover {
-            background: var(--verde-h);
+            filter: brightness(1.05);
         }
 
         .btn-gris {
-            background: #e3e9e7;
-            color: #10221f;
+            background: #e6ece9;
+            color: var(--ink);
+        }
+
+        .btn-gris:hover {
+            background: #dde5e1;
         }
 
         .btn-rojo {
@@ -123,31 +158,38 @@
             color: #fff;
         }
 
+        .btn-rojo:hover {
+            filter: brightness(1.05);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             background: #fff;
-            border-radius: 12px;
+            border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            box-shadow: var(--shadow);
         }
 
         th {
-            background: var(--verde);
-            color: #fff;
-            font-size: 13px;
+            background: #123f38;
+            color: #eafaf3;
+            font-family: "Space Grotesk", sans-serif;
+            font-weight: 600;
+            font-size: 12.5px;
+            letter-spacing: .02em;
             text-align: left;
-            padding: 12px 14px;
+            padding: 13px 15px;
         }
 
         td {
-            padding: 11px 14px;
+            padding: 12px 15px;
             font-size: 14px;
-            border-top: 1px solid #eef2f1;
+            border-top: 1px solid #eef3f1;
         }
 
         tr:hover td {
-            background: #f7faf9;
+            background: #f6faf8;
         }
 
         .acciones a {
@@ -155,6 +197,10 @@
             text-decoration: none;
             margin-right: 12px;
             font-weight: 600;
+        }
+
+        .acciones a:hover {
+            text-decoration: underline;
         }
 
         .a-editar {
@@ -172,14 +218,14 @@
 
         .tarjeta {
             background: #fff;
-            border-radius: 14px;
-            padding: 26px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            border-radius: var(--radius);
+            padding: 28px;
+            box-shadow: var(--shadow);
             max-width: 560px;
         }
 
         .campo {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .campo label {
@@ -187,17 +233,26 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--tenue);
-            margin-bottom: 6px;
+            margin-bottom: 7px;
         }
 
         .campo input,
         .campo select {
             width: 100%;
-            padding: 11px 13px;
+            padding: 12px 14px;
             font-size: 15px;
+            font-family: inherit;
             border: 1.5px solid var(--borde);
-            border-radius: 10px;
+            border-radius: 11px;
             background: #fbfdfc;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .campo input:focus,
+        .campo select:focus {
+            outline: none;
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(22, 160, 90, .15);
         }
 
         .campo input[type="checkbox"] {
@@ -208,36 +263,37 @@
             display: block;
             color: var(--tenue);
             font-size: 12px;
-            margin-top: 4px;
+            margin-top: 5px;
         }
 
         .campo .error {
             color: var(--rojo);
             font-size: 13px;
-            margin-top: 4px;
+            margin-top: 5px;
         }
 
         .form-botones {
             display: flex;
             gap: 10px;
-            margin-top: 22px;
+            margin-top: 24px;
         }
 
         .mensajes {
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
 
         .msg {
-            border-radius: 10px;
-            padding: 12px 16px;
+            border-radius: 12px;
+            padding: 13px 16px;
             margin-bottom: 8px;
             font-size: 14px;
+            font-weight: 500;
             border-left: 4px solid;
         }
 
         .msg.success {
             background: #e7f6ec;
-            border-color: var(--verde);
+            border-color: var(--green);
             color: #0f5128;
         }
 
@@ -251,6 +307,29 @@
             background: #fdeaea;
             border-color: var(--rojo);
             color: #8f291f;
+        }
+
+        :focus-visible {
+            outline: 3px solid #57c79a;
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 640px) {
+            .barra {
+                flex-wrap: wrap;
+                gap: 10px 16px;
+                padding: 14px 18px;
+            }
+
+            .contenedor {
+                padding: 22px 16px 40px;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
         }
     </style>
 </head>

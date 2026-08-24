@@ -5,11 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes de Asistencia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --verde: #17803d;
-            --tenue: #5c7370;
-            --borde: #dbe5e3;
+            --green: #16a05a;
+            --green-d: #0d7a43;
+            --deep-1: #0a2723;
+            --deep-2: #10403a;
+            --azul: #1f6fce;
+            --tenue: #6a847e;
+            --borde: #e4ede9;
+            --rojo: #c0392b;
+            --ink: #12332c;
+            --radius: 16px;
+            --shadow: 0 10px 30px rgba(15, 45, 40, .07);
         }
 
         * {
@@ -19,32 +32,90 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #eef2f1;
-            color: #10221f;
-            padding: 28px;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #eef3f1;
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        .barra {
+            background: linear-gradient(165deg, var(--deep-2), var(--deep-1));
+            color: #fff;
+            padding: 15px 28px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .barra .logo {
+            font-family: "Space Grotesk", sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .barra nav {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .barra nav a {
+            color: rgba(255, 255, 255, .8);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 14px;
+            border-radius: 9px;
+            transition: background .15s;
+        }
+
+        .barra nav a:hover,
+        .barra nav a.activo {
+            background: rgba(255, 255, 255, .13);
+            color: #fff;
+        }
+
+        .barra .salir {
+            background: rgba(255, 255, 255, .1);
+            border: 1px solid rgba(255, 255, 255, .22);
+            color: #fff;
+            border-radius: 9px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .barra .salir:hover {
+            background: rgba(255, 255, 255, .2);
         }
 
         .contenedor {
             max-width: 1000px;
             margin: 0 auto;
+            padding: 30px 28px 48px;
         }
 
         h1 {
-            font-size: 22px;
-            margin-bottom: 20px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 22px;
         }
 
         .filtros {
             background: #fff;
-            border-radius: 14px;
+            border-radius: var(--radius);
             padding: 20px;
             display: flex;
             flex-wrap: wrap;
             gap: 16px;
             align-items: flex-end;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
         }
 
         .campo {
@@ -61,96 +132,136 @@
 
         .campo select,
         .campo input {
-            padding: 10px 12px;
+            padding: 11px 13px;
             font-size: 14px;
+            font-family: inherit;
             border: 1.5px solid var(--borde);
-            border-radius: 9px;
+            border-radius: 10px;
             background: #fbfdfc;
             min-width: 160px;
+        }
+
+        .campo select:focus,
+        .campo input:focus {
+            outline: none;
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(22, 160, 90, .15);
         }
 
         .botones {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .btn {
             border: none;
-            border-radius: 9px;
+            border-radius: 11px;
             padding: 11px 18px;
             font-size: 14px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
+            transition: transform .08s, filter .15s;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
         }
 
         .btn-filtrar {
-            background: #1f5fbf;
+            background: linear-gradient(160deg, var(--green), var(--green-d));
             color: #fff;
+            box-shadow: 0 6px 16px rgba(13, 122, 67, .22);
+        }
+
+        .btn-filtrar:hover {
+            filter: brightness(1.05);
         }
 
         .btn-excel {
-            background: var(--verde);
-            color: #fff;
+            background: #e6ece9;
+            color: var(--ink);
+        }
+
+        .btn-excel:hover {
+            background: #dde5e1;
         }
 
         .resumen {
             display: flex;
-            gap: 14px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
         }
 
         .tarjeta-resumen {
             background: #fff;
-            border-radius: 12px;
-            padding: 16px 20px;
+            border-radius: var(--radius);
+            padding: 20px 22px;
             flex: 1;
             min-width: 150px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tarjeta-resumen::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--green);
         }
 
         .tarjeta-resumen .num {
-            font-size: 28px;
-            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 30px;
+            font-weight: 600;
+            line-height: 1;
         }
 
         .tarjeta-resumen .txt {
             font-size: 13px;
             color: var(--tenue);
-            margin-top: 2px;
+            margin-top: 7px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             background: #fff;
-            border-radius: 12px;
+            border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            box-shadow: var(--shadow);
         }
 
         th {
-            background: var(--verde);
-            color: #fff;
-            font-size: 13px;
+            background: #123f38;
+            color: #eafaf3;
+            font-family: "Space Grotesk", sans-serif;
+            font-weight: 600;
+            font-size: 12.5px;
             text-align: left;
-            padding: 12px 14px;
+            padding: 13px 15px;
         }
 
         td {
-            padding: 11px 14px;
+            padding: 12px 15px;
             font-size: 14px;
-            border-top: 1px solid #eef2f1;
+            border-top: 1px solid #eef3f1;
         }
 
         tr:hover td {
-            background: #f7faf9;
+            background: #f6faf8;
         }
 
         .tarde {
-            color: #c0392b;
+            color: var(--rojo);
             font-weight: 600;
         }
 
@@ -160,20 +271,48 @@
             padding: 30px;
         }
 
-        .volver {
-            display: inline-block;
-            margin-bottom: 16px;
-            color: var(--tenue);
-            font-size: 14px;
+        :focus-visible {
+            outline: 3px solid #57c79a;
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 640px) {
+            .barra {
+                flex-wrap: wrap;
+                gap: 10px 16px;
+                padding: 14px 18px;
+            }
+
+            .contenedor {
+                padding: 22px 16px 40px;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="contenedor">
-        <a class="volver" href="/panel/">← Volver al panel</a>
-        <h1>Reportes de Asistencia</h1>
+    <div class="barra">
+        <a class="logo" href="{% url 'panel' %}">Asistencia · Administración</a>
+        <nav>
+            <a href="{% url 'panel' %}">Panel</a>
+            <a href="{% url 'pasantes_lista' %}">Pasantes</a>
+            <a href="{% url 'reportes' %}" class="activo">Reportes</a>
+            <a href="{% url 'admins_lista' %}">Admins</a>
+        </nav>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="salir">Cerrar sesión</button>
+        </form>
+    </div>
 
+    <div class="contenedor">
+        <h1>Reportes de Asistencia</h1>
         <form method="get" class="filtros">
             <div class="campo">
                 <label for="pasante">Pasante</label>
@@ -207,7 +346,6 @@
                 {% endif %}
             </div>
         </form>
-
         <div class="resumen">
             <div class="tarjeta-resumen">
                 <div class="num">{{ total }}</div>
@@ -222,7 +360,6 @@
                 <div class="txt">Minutos de tardanza acumulados</div>
             </div>
         </div>
-
         <table>
             <thead>
                 <tr>

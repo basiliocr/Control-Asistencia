@@ -5,12 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --verde: #17803d;
-            --teal: #0f2f33;
-            --tenue: #5c7370;
-            --borde: #dbe5e3;
+            --green: #16a05a;
+            --green-d: #0d7a43;
+            --deep-1: #0a2723;
+            --deep-2: #10403a;
+            --azul: #1f6fce;
+            --tenue: #6a847e;
+            --borde: #e4ede9;
+            --rojo: #c0392b;
+            --ink: #12332c;
+            --radius: 16px;
+            --shadow: 0 10px 30px rgba(15, 45, 40, .07);
         }
 
         * {
@@ -20,45 +32,45 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #eef2f1;
-            color: #10221f;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #eef3f1;
+            color: var(--ink);
             min-height: 100vh;
         }
 
         .barra {
-            background: linear-gradient(160deg, #0f2f33, #123b40);
+            background: linear-gradient(165deg, var(--deep-2), var(--deep-1));
             color: #fff;
-            padding: 22px 28px;
+            padding: 24px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 16px;
         }
 
         .barra .titulo {
-            font-size: 20px;
-            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 21px;
+            font-weight: 600;
         }
 
         .barra .sub {
             font-size: 13px;
-            opacity: 0.75;
-            margin-top: 2px;
-        }
-
-        .barra form {
-            margin: 0;
+            opacity: 0.72;
+            margin-top: 3px;
         }
 
         .salir {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.22);
             color: #fff;
-            border-radius: 9px;
+            border-radius: 10px;
             padding: 9px 16px;
             font-size: 13px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
+            transition: background .15s;
         }
 
         .salir:hover {
@@ -68,112 +80,127 @@
         .contenedor {
             max-width: 980px;
             margin: 0 auto;
-            padding: 28px;
+            padding: 30px 28px 48px;
         }
 
         .resumen {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 16px;
-            margin-bottom: 28px;
+            margin-bottom: 34px;
         }
 
         .tile {
             background: #fff;
-            border-radius: 14px;
-            padding: 20px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-            border-left: 4px solid var(--verde);
+            border-radius: var(--radius);
+            padding: 22px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tile::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--green);
         }
 
         .tile .num {
-            font-size: 32px;
-            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 34px;
+            font-weight: 600;
             line-height: 1;
         }
 
         .tile .lbl {
             font-size: 13px;
             color: var(--tenue);
-            margin-top: 6px;
+            margin-top: 8px;
         }
 
-        .tile.alerta {
-            border-left-color: #c0392b;
+        .tile.alerta::before {
+            background: var(--rojo);
         }
 
         .tile.alerta .num {
-            color: #c0392b;
+            color: var(--rojo);
         }
 
         .seccion-titulo {
-            font-size: 14px;
-            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
             color: var(--tenue);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 14px;
+            letter-spacing: .12em;
+            margin-bottom: 16px;
         }
 
         .cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
             gap: 16px;
         }
 
         .card {
             background: #fff;
-            border-radius: 14px;
-            padding: 22px;
+            border-radius: var(--radius);
+            padding: 24px;
             text-decoration: none;
             color: inherit;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            box-shadow: var(--shadow);
             border: 1px solid var(--borde);
-            transition: transform 0.12s ease, box-shadow 0.12s ease;
+            transition: transform 0.13s ease, box-shadow 0.13s ease;
             display: block;
         }
 
         .card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 16px 34px rgba(15, 45, 40, 0.13);
         }
 
         .card .icono {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            margin-bottom: 14px;
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #e7f6ec;
-            color: var(--verde);
-            font-size: 20px;
+            color: var(--green-d);
+            font-size: 21px;
             font-weight: 700;
         }
 
         .card.azul .icono {
             background: #e6effb;
-            color: #1f5fbf;
+            color: var(--azul);
         }
 
         .card .card-titulo {
+            font-family: "Space Grotesk", sans-serif;
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 600;
         }
 
         .card .card-desc {
             font-size: 13px;
             color: var(--tenue);
-            margin-top: 4px;
-            line-height: 1.4;
+            margin-top: 5px;
+            line-height: 1.45;
         }
 
         .destacada {
             grid-column: 1 / -1;
-            background: var(--verde);
+            background: linear-gradient(150deg, var(--green), var(--green-d));
             color: #fff;
             border: none;
+            box-shadow: 0 12px 28px rgba(13, 122, 67, .28);
         }
 
         .destacada .icono {
@@ -182,7 +209,22 @@
         }
 
         .destacada .card-desc {
-            color: rgba(255, 255, 255, 0.85);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @media (max-width: 640px) {
+            .barra {
+                padding: 20px 18px;
+            }
+
+            .contenedor {
+                padding: 22px 16px 40px;
+            }
+
+            .resumen {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
         }
     </style>
 </head>
