@@ -28,7 +28,11 @@
             <td>{% if p.activo %}Activo{% else %}<span class="baja">De baja</span>{% endif %}</td>
             <td class="acciones">
                 <a class="a-editar" href="{% url 'pasante_editar' p.pk %}">Editar</a>
-                <a class="a-eliminar" href="{% url 'pasante_eliminar' p.pk %}">Eliminar</a>
+                {% if p.activo %}
+                <a class="a-eliminar" href="{% url 'pasante_eliminar' p.pk %}">Dar de baja</a>
+                {% else %}
+                <a class="a-alta" href="{% url 'pasante_eliminar' p.pk %}">Reactivar</a>
+                {% endif %}
                 <a class="a-editar" href="{% url 'pasante_reset_dispositivo' p.pk %}">Reiniciar celular</a>
             </td>
         </tr>

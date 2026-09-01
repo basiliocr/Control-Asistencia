@@ -28,7 +28,11 @@
             <td class="acciones">
                 <a class="a-editar" href="{% url 'admin_editar' a.pk %}">Editar</a>
                 {% if a.pk != request.user.pk %}
-                <a class="a-eliminar" href="{% url 'admin_eliminar' a.pk %}">Eliminar</a>
+                {% if a.is_active %}
+                <a class="a-eliminar" href="{% url 'admin_eliminar' a.pk %}">Dar de baja</a>
+                {% else %}
+                <a class="a-alta" href="{% url 'admin_eliminar' a.pk %}">Reactivar</a>
+                {% endif %}
                 {% endif %}
             </td>
         </tr>

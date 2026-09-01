@@ -1,34 +1,29 @@
 {% extends "registro/base.html" %}
-{% block titulo %}Eliminar pasante{% endblock %}
-
+{% block titulo %}{% if pasante.activo %}Dar de baja{% else %}Reactivar{% endif %}{% endblock %}
 {% block contenido %}
 <div class="cabecera">
-    <h1>Eliminar pasante</h1>
+    <h1>{% if pasante.activo %}Dar de baja pasante{% else %}Reactivar pasante{% endif %}</h1>
 </div>
-
 <div class="tarjeta">
-    {% if tiene_historial %}
-    <p style="margin-bottom:16px; line-height:1.5;">
-        <strong>{{ pasante.nombre }}</strong> ya tiene asistencias registradas, así que
-        <strong>no se puede eliminar</strong> sin perder su historial. En su lugar,
-        será <strong>dado de baja</strong>: dejará de aparecer entre los activos y no podrá
-        marcar, pero su historial se conserva para los reportes.
+    {% if pasante.activo %}
+    <p style="margin-bottom:16px; line-height:1.55;">
+        ¿Seguro que quieres dar de baja a <strong>{{ pasante.nombre }}</strong>?
+        No podrá iniciar sesión ni marcar asistencia, pero <strong>su historial se conserva</strong>.
+        Podrás reactivarlo cuando quieras.
     </p>
     {% else %}
-    <p style="margin-bottom:16px; line-height:1.5;">
-        ¿Seguro que quieres eliminar a <strong>{{ pasante.nombre }}</strong>?
-        Como no tiene ninguna asistencia registrada, se borrará por completo,
-        junto con su cuenta de acceso. Esta acción no se puede deshacer.
+    <p style="margin-bottom:16px; line-height:1.55;">
+        ¿Reactivar a <strong>{{ pasante.nombre }}</strong>?
+        Volverá a poder iniciar sesión y marcar asistencia.
     </p>
     {% endif %}
-
     <form method="post">
         {% csrf_token %}
         <div class="form-botones">
-            {% if tiene_historial %}
+            {% if pasante.activo %}
             <button type="submit" class="btn btn-rojo">Dar de baja</button>
             {% else %}
-            <button type="submit" class="btn btn-rojo">Eliminar definitivamente</button>
+            <button type="submit" class="btn btn-verde">Reactivar</button>
             {% endif %}
             <a class="btn btn-gris" href="{% url 'pasantes_lista' %}">Cancelar</a>
         </div>

@@ -1,18 +1,29 @@
 {% extends "registro/base.html" %}
-{% block titulo %}Eliminar administrador{% endblock %}
+{% block titulo %}{% if admin_user.is_active %}Dar de baja{% else %}Reactivar{% endif %}{% endblock %}
 {% block contenido %}
 <div class="cabecera">
-    <h1>Eliminar administrador</h1>
+    <h1>{% if admin_user.is_active %}Dar de baja administrador{% else %}Reactivar administrador{% endif %}</h1>
 </div>
 <div class="tarjeta">
-    <p style="margin-bottom:16px;line-height:1.5;">
-        ¿Seguro que quieres eliminar al administrador
-        <strong>{{ admin_user.username }}</strong>? Esta acción no se puede deshacer.
+    {% if admin_user.is_active %}
+    <p style="margin-bottom:16px; line-height:1.55;">
+        ¿Seguro que quieres dar de baja al administrador <strong>{{ admin_user.username }}</strong>?
+        No podrá iniciar sesión, pero <strong>su cuenta se conserva</strong> y podrás reactivarla cuando quieras.
     </p>
+    {% else %}
+    <p style="margin-bottom:16px; line-height:1.55;">
+        ¿Reactivar al administrador <strong>{{ admin_user.username }}</strong>?
+        Volverá a poder iniciar sesión.
+    </p>
+    {% endif %}
     <form method="post">
         {% csrf_token %}
         <div class="form-botones">
-            <button type="submit" class="btn btn-rojo">Eliminar</button>
+            {% if admin_user.is_active %}
+            <button type="submit" class="btn btn-rojo">Dar de baja</button>
+            {% else %}
+            <button type="submit" class="btn btn-verde">Reactivar</button>
+            {% endif %}
             <a class="btn btn-gris" href="{% url 'admins_lista' %}">Cancelar</a>
         </div>
     </form>

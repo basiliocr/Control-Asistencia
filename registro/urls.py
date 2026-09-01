@@ -28,6 +28,16 @@ urlpatterns = [
     ),
     path("gestion/dias/", views.dias_lista, name="dias_lista"),
     path("gestion/dias/nuevo/", views.dia_form, name="dia_nuevo"),
+    path(
+        "gestion/dias/cargar-feriados/",
+        views.dias_cargar_feriados,
+        name="dias_cargar_feriados",
+    ),
+    path(
+        "gestion/dias/recalcular/",
+        views.dias_recalcular_tardanzas,
+        name="dias_recalcular_tardanzas",
+    ),
     path("gestion/dias/<int:pk>/editar/", views.dia_form, name="dia_editar"),
     path("gestion/dias/<int:pk>/eliminar/", views.dia_eliminar, name="dia_eliminar"),
     path("gestion/admins/", views.admins_lista, name="admins_lista"),

@@ -3,7 +3,21 @@
 {% block contenido %}
 <div class="cabecera">
     <h1>Días especiales</h1>
-    <a class="btn btn-verde" href="{% url 'dia_nuevo' %}">+ Nuevo día</a>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <form method="post" action="{% url 'dias_cargar_feriados' %}"
+            style="display:flex; gap:8px; align-items:center; margin:0;">
+            {% csrf_token %}
+            <input type="number" name="anio" value="{{ anio_actual }}" min="2020" max="2100"
+                style="width:88px; padding:9px 10px; border:1.5px solid #e4ede9; border-radius:10px; font-family:inherit;">
+            <button type="submit" class="btn btn-gris">Cargar feriados de Bolivia</button>
+        </form>
+        <form method="post" action="{% url 'dias_recalcular_tardanzas' %}" style="margin:0;"
+            onsubmit="return confirm('¿Recalcular la tardanza de todas las asistencias?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-gris">Recalcular tardanzas</button>
+        </form>
+        <a class="btn btn-verde" href="{% url 'dia_nuevo' %}">+ Nuevo día</a>
+    </div>
 </div>
 
 <table>

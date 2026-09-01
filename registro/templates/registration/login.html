@@ -219,6 +219,7 @@
 
         <form method="post" id="form-login">
             {% csrf_token %}
+            <input type="hidden" name="dispositivo" id="dispositivo">
             <label for="id_username">Usuario</label>
             <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
 
@@ -230,6 +231,24 @@
     </div>
 
     <script>
+        /* IDENTIFICADOR ÚNICO DEL DISPOSITIVO (igual que en la marcación).
+           Se genera una vez por navegador y se envía en el login. */
+        (function () {
+            let id = null;
+            try { id = localStorage.getItem("dispositivo_id"); }
+            catch (e) { console.warn("localStorage no disponible", e); }
+            if (!id) {
+                if (window.crypto && typeof window.crypto.randomUUID === "function") {
+                    id = window.crypto.randomUUID();
+                } else {
+                    id = "dev-" + Date.now() + "-" + Math.random().toString(36).substring(2);
+                }
+                try { localStorage.setItem("dispositivo_id", id); }
+                catch (e) { console.warn("no se pudo guardar el id", e); }
+            }
+            const campo = document.getElementById("dispositivo");
+            if (campo) campo.value = id;
+        })();
         (function () {
             // Buscar en los mensajes de error si la cuenta está bloqueada
             // y cuántos segundos faltan (el mensaje dice "... en X segundos").

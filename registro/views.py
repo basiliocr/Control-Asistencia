@@ -12,8 +12,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
 from .models import Pasante, Asistencia, Institucion, DiaEspecial, Correccion
-from .forms import PasanteForm, AsistenciaForm, DiaEspecialForm, AdminUserForm
-from .services import registrar_con_gps
+from .forms import (
+    PasanteForm,
+    AsistenciaForm,
+    DiaEspecialForm,
+    RangoDiaEspecialForm,
+    AdminUserForm,
+)
+from .services import registrar_con_gps, _calcular_tardanza
 
 
 @login_required
@@ -108,6 +114,8 @@ def pasante_form(request, pk=None):
                     user = User.objects.create_user(
                         username=username, password=password
                     )
+                    user.is_active = form.cleaned_data["activo"]
+                    user.save()
                     obj = form.save(commit=False)
                     obj.user = user
                     obj.save()
@@ -118,6 +126,7 @@ def pasante_form(request, pk=None):
                 user.username = username
                 if password:
                     user.set_password(password)
+                user.is_active = form.cleaned_data["activo"]
                 user.save()
                 form.save()
                 messages.success(request, f"Pasante «{pasante.nombre}» actualizado.")
@@ -131,28 +140,24 @@ def pasante_form(request, pk=None):
 
 @staff_member_required
 def pasante_eliminar(request, pk):
+    """Da de baja o reactiva un pasante. Ya NO elimina: el historial se conserva."""
     pasante = get_object_or_404(Pasante, pk=pk)
-    tiene_historial = pasante.asistencias.exists()
     if request.method == "POST":
-        nombre = pasante.nombre
-        if tiene_historial:
-            pasante.activo = False
-            pasante.save()
+        nuevo_estado = not pasante.activo  # alterna: baja <-> alta
+        pasante.activo = nuevo_estado
+        pasante.save(update_fields=["activo"])
+        pasante.user.is_active = nuevo_estado
+        pasante.user.save(update_fields=["is_active"])
+        if nuevo_estado:
+            messages.success(request, f"Pasante «{pasante.nombre}» reactivado.")
+        else:
             messages.info(
                 request,
-                f"«{nombre}» tiene historial, así que fue dado de baja (no eliminado).",
+                f"Pasante «{pasante.nombre}» dado de baja. Ya no podrá iniciar sesión; "
+                f"su historial se conserva.",
             )
-        else:
-            user = pasante.user
-            pasante.delete()
-            user.delete()
-            messages.success(request, f"Pasante «{nombre}» eliminado por completo.")
         return redirect("pasantes_lista")
-    return render(
-        request,
-        "registro/pasante_eliminar.html",
-        {"pasante": pasante, "tiene_historial": tiene_historial},
-    )
+    return render(request, "registro/pasante_eliminar.html", {"pasante": pasante})
 
 
 # --------------------------- Planilla de asistencias ---------------------------
@@ -160,7 +165,28 @@ def pasante_eliminar(request, pk):
 
 @staff_member_required
 def asistencias_lista(request):
-    asistencias, desde, hasta, pasante_id = _asistencias_filtradas(request)
+    # La lista solo se muestra DESPUÉS de filtrar (evita cargar todo de golpe).
+    filtrado = bool(
+        request.GET.get("desde")
+        or request.GET.get("hasta")
+        or request.GET.get("pasante") is not None
+    )
+
+    hoy = timezone.localdate()
+    desde = request.GET.get("desde") or hoy.replace(day=1).isoformat()
+    hasta = request.GET.get("hasta") or hoy.isoformat()
+    pasante_id = request.GET.get("pasante") or ""
+
+    asistencias = None
+    if filtrado:
+        asistencias = (
+            Asistencia.objects.select_related("pasante")
+            .filter(fecha__gte=desde, fecha__lte=hasta)
+            .order_by("-fecha", "pasante__nombre")
+        )
+        if pasante_id:
+            asistencias = asistencias.filter(pasante_id=pasante_id)
+
     return render(
         request,
         "registro/asistencias_lista.html",
@@ -170,6 +196,7 @@ def asistencias_lista(request):
             "desde": desde,
             "hasta": hasta,
             "pasante_id": pasante_id,
+            "filtrado": filtrado,
         },
     )
 
@@ -180,12 +207,24 @@ def asistencia_editar(request, pk):
     if request.method == "POST":
         form = AsistenciaForm(request.POST, instance=asistencia)
         if form.is_valid():
-            form.save()
+            obj = form.save(commit=False)
+            # La tardanza se recalcula sola según la hora de entrada
+            # (aplicando tolerancia, feriados y horarios especiales).
+            if obj.hora_entrada:
+                obj.tardanza_min = _calcular_tardanza(
+                    obj.pasante, obj.fecha, obj.hora_entrada
+                )
+            else:
+                obj.tardanza_min = 0
+            obj.save()
             if form.changed_data:
                 Correccion.objects.create(
                     asistencia=asistencia,
                     admin=request.user,
-                    detalle=f"Editado desde el panel. Campos: {', '.join(form.changed_data)}.",
+                    detalle=(
+                        f"Editado desde el panel. Campos: {', '.join(form.changed_data)}. "
+                        f"Tardanza recalculada: {obj.tardanza_min} min."
+                    ),
                 )
             messages.success(
                 request, "Asistencia actualizada. Se registró la corrección."
@@ -215,31 +254,192 @@ def asistencia_eliminar(request, pk):
 # --------------------------- Días especiales ---------------------------
 
 
+def _recalcular_tardanzas(fecha):
+    """Recalcula la tardanza de todas las asistencias de una fecha.
+    Se usa cuando se agrega, edita o quita un día especial que las afecta."""
+    for a in Asistencia.objects.filter(fecha=fecha).select_related("pasante"):
+        nueva = (
+            _calcular_tardanza(a.pasante, a.fecha, a.hora_entrada)
+            if a.hora_entrada
+            else 0
+        )
+        if nueva != a.tardanza_min:
+            a.tardanza_min = nueva
+            a.save(update_fields=["tardanza_min"])
+
+
 @staff_member_required
 def dias_lista(request):
     dias = DiaEspecial.objects.order_by("-fecha")
-    return render(request, "registro/dias_lista.html", {"dias": dias})
+    return render(
+        request,
+        "registro/dias_lista.html",
+        {"dias": dias, "anio_actual": timezone.localdate().year},
+    )
 
 
 @staff_member_required
 def dia_form(request, pk=None):
     dia = get_object_or_404(DiaEspecial, pk=pk) if pk else None
+
+    # EDICIÓN: un solo día (formulario normal).
+    if dia is not None:
+        if request.method == "POST":
+            fecha_anterior = dia.fecha
+            form = DiaEspecialForm(request.POST, instance=dia)
+            if form.is_valid():
+                dia = form.save()
+                _recalcular_tardanzas(fecha_anterior)
+                if dia.fecha != fecha_anterior:
+                    _recalcular_tardanzas(dia.fecha)
+                messages.success(request, "Día especial actualizado.")
+                return redirect("dias_lista")
+        else:
+            form = DiaEspecialForm(instance=dia)
+        return render(request, "registro/dia_form.html", {"form": form, "dia": dia})
+
+    # NUEVO: permite un rango de fechas (feriados de varios días).
     if request.method == "POST":
-        form = DiaEspecialForm(request.POST, instance=dia)
+        form = RangoDiaEspecialForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Día especial guardado.")
+            from datetime import timedelta
+
+            desde = form.cleaned_data["fecha_desde"]
+            hasta = form.cleaned_data["fecha_hasta"] or desde
+            tipo = form.cleaned_data["tipo"]
+            hora = form.cleaned_data["hora_entrada_especial"]
+            desc = form.cleaned_data["descripcion"]
+            creados, existentes = 0, 0
+            d = desde
+            while d <= hasta:
+                _, creado = DiaEspecial.objects.get_or_create(
+                    fecha=d,
+                    defaults={
+                        "tipo": tipo,
+                        "hora_entrada_especial": hora,
+                        "descripcion": desc,
+                    },
+                )
+                creados += 1 if creado else 0
+                existentes += 0 if creado else 1
+                _recalcular_tardanzas(d)
+                d += timedelta(days=1)
+            if creados:
+                msg = f"Se registraron {creados} día(s) especial(es)."
+                if existentes:
+                    msg += f" {existentes} ya existían y se omitieron."
+                messages.success(request, msg)
+            else:
+                messages.info(
+                    request, "Todos los días del rango ya estaban registrados."
+                )
             return redirect("dias_lista")
     else:
-        form = DiaEspecialForm(instance=dia)
-    return render(request, "registro/dia_form.html", {"form": form, "dia": dia})
+        form = RangoDiaEspecialForm()
+    return render(request, "registro/dia_form.html", {"form": form, "dia": None})
+
+
+def _pascua(anio):
+    """Domingo de Pascua (algoritmo de Butcher) para calcular feriados móviles."""
+    from datetime import date
+
+    a = anio % 19
+    b = anio // 100
+    c = anio % 100
+    d = b // 4
+    e = b % 4
+    ff = (b + 8) // 25
+    g = (b - ff + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    ll = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * ll) // 451
+    mes = (h + ll - 7 * m + 114) // 31
+    dia = ((h + ll - 7 * m + 114) % 31) + 1
+    return date(anio, mes, dia)
+
+
+def _feriados_bolivia(anio):
+    """Lista de (fecha, nombre) de los feriados de Bolivia para el año dado."""
+    from datetime import date, timedelta
+
+    pascua = _pascua(anio)
+    feriados = [
+        (date(anio, 1, 1), "Año Nuevo"),
+        (date(anio, 1, 22), "Día del Estado Plurinacional de Bolivia"),
+        (date(anio, 3, 6), "Aniversario de El Alto"),
+        (pascua - timedelta(days=48), "Lunes de Carnaval"),
+        (pascua - timedelta(days=47), "Martes de Carnaval"),
+        (pascua - timedelta(days=2), "Viernes Santo"),
+        (date(anio, 5, 1), "Día del Trabajo"),
+        (pascua + timedelta(days=60), "Corpus Christi"),
+        (date(anio, 6, 21), "Año Nuevo Andino Amazónico"),
+        (date(anio, 7, 16), "Aniversario de La Paz"),
+        (date(anio, 8, 6), "Día de la Independencia de Bolivia"),
+        (date(anio, 11, 2), "Todos los Santos"),
+        (date(anio, 12, 25), "Navidad"),
+    ]
+    feriados.sort(key=lambda x: x[0])
+    return feriados
+
+
+@staff_member_required
+def dias_cargar_feriados(request):
+    if request.method != "POST":
+        return redirect("dias_lista")
+    try:
+        anio = int(request.POST.get("anio"))
+    except (TypeError, ValueError):
+        anio = timezone.localdate().year
+
+    creados, existentes = 0, 0
+    for fecha, nombre in _feriados_bolivia(anio):
+        _, creado = DiaEspecial.objects.get_or_create(
+            fecha=fecha,
+            defaults={"tipo": DiaEspecial.FERIADO, "descripcion": nombre},
+        )
+        creados += 1 if creado else 0
+        existentes += 0 if creado else 1
+        _recalcular_tardanzas(fecha)
+
+    msg = f"Feriados de Bolivia {anio}: se agregaron {creados}."
+    if existentes:
+        msg += f" {existentes} ya estaban registrados."
+    messages.success(request, msg)
+    return redirect("dias_lista")
+
+
+@staff_member_required
+def dias_recalcular_tardanzas(request):
+    """Recalcula la tardanza de TODAS las asistencias (arregla datos viejos
+    que no se actualizaron al agregar feriados o cambiar horarios)."""
+    if request.method != "POST":
+        return redirect("dias_lista")
+    cambiadas = 0
+    for a in Asistencia.objects.select_related("pasante"):
+        nueva = (
+            _calcular_tardanza(a.pasante, a.fecha, a.hora_entrada)
+            if a.hora_entrada
+            else 0
+        )
+        if nueva != a.tardanza_min:
+            a.tardanza_min = nueva
+            a.save(update_fields=["tardanza_min"])
+            cambiadas += 1
+    messages.success(
+        request, f"Tardanzas recalculadas. Se corrigieron {cambiadas} registro(s)."
+    )
+    return redirect("dias_lista")
 
 
 @staff_member_required
 def dia_eliminar(request, pk):
     dia = get_object_or_404(DiaEspecial, pk=pk)
     if request.method == "POST":
+        fecha = dia.fecha
         dia.delete()
+        _recalcular_tardanzas(fecha)
         messages.success(request, "Día especial eliminado.")
         return redirect("dias_lista")
     return render(request, "registro/dia_eliminar.html", {"dia": dia})
@@ -410,16 +610,25 @@ def admin_form(request, pk=None):
 
 @staff_member_required
 def admin_eliminar(request, pk):
+    """Da de baja o reactiva un administrador. Ya NO elimina la cuenta."""
     admin_user = get_object_or_404(User, pk=pk, is_staff=True)
 
     if admin_user.pk == request.user.pk:
-        messages.error(request, "No puedes eliminar tu propia cuenta.")
+        messages.error(request, "No puedes cambiar el estado de tu propia cuenta.")
         return redirect("admins_lista")
 
     if request.method == "POST":
-        nombre = admin_user.username
-        admin_user.delete()
-        messages.success(request, f"Administrador «{nombre}» eliminado.")
+        admin_user.is_active = not admin_user.is_active
+        admin_user.save(update_fields=["is_active"])
+        if admin_user.is_active:
+            messages.success(
+                request, f"Administrador «{admin_user.username}» reactivado."
+            )
+        else:
+            messages.info(
+                request,
+                f"Administrador «{admin_user.username}» dado de baja. Ya no podrá iniciar sesión.",
+            )
         return redirect("admins_lista")
 
     return render(request, "registro/admin_eliminar.html", {"admin_user": admin_user})
@@ -469,6 +678,12 @@ def planilla_word(request):
     asistencias = Asistencia.objects.filter(
         pasante=pasante, fecha__gte=desde, fecha__lte=hasta
     ).order_by("fecha")
+
+    # Días especiales del rango, para anotarlos en Observaciones.
+    dias_esp = {
+        de.fecha: de
+        for de in DiaEspecial.objects.filter(fecha__gte=desde, fecha__lte=hasta)
+    }
     DIAS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
 
     base_img = os.path.join(os.path.dirname(__file__), "static", "img")
@@ -484,16 +699,16 @@ def planilla_word(request):
                 img_h, 12 * mm, H - 8 * mm - hh, width=hw, height=hh, mask="auto"
             )
         fw = W - 24 * mm
-        fh = fw * 0.2267
+        fh = fw * 0.0753
         if os.path.exists(img_f):
-            canvas.drawImage(img_f, 12 * mm, 2 * mm, width=fw, height=fh, mask="auto")
+            canvas.drawImage(img_f, 12 * mm, 5 * mm, width=fw, height=fh, mask="auto")
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=LETTER,
         topMargin=48 * mm,
-        bottomMargin=46 * mm,
+        bottomMargin=24 * mm,
         leftMargin=12 * mm,
         rightMargin=12 * mm,
     )
@@ -527,34 +742,40 @@ def planilla_word(request):
         Paragraph("<u>PLANILLA DE ASISTENCIA TRABAJO DIRIGIDO O PASANTÍA</u>", titulo)
     )
 
-    # Recuadro del sello: 2.7 cm de ancho x 3 cm de alto, con borde.
-    sello_inner = Table(
-        [[Paragraph("SELLO DE LA<br/>DEPENDENCIA", sello)]],
-        colWidths=[2.7 * cm],
-        rowHeights=[3 * cm],
+    # Estilos para la firma del supervisor (líneas + etiqueta, centrados)
+    firma_lineas = ParagraphStyle(
+        "fl", fontName="Helvetica", fontSize=10, alignment=TA_CENTER, spaceAfter=1
     )
-    sello_inner.setStyle(
-        TableStyle(
-            [
-                ("BOX", (0, 0), (0, 0), 0.8, colors.HexColor("#888888")),
-                ("VALIGN", (0, 0), (0, 0), "MIDDLE"),
-                ("ALIGN", (0, 0), (0, 0), "CENTER"),
-            ]
-        )
+    firma_lbl = ParagraphStyle(
+        "flb", fontName="Helvetica-Bold", fontSize=8, alignment=TA_CENTER, spaceAfter=3
     )
+
+    # Recuadro del sello: cuadro vacío (2.7 x 3 cm) con la etiqueta DEBAJO.
+    caja_sello = Table([[""]], colWidths=[2.7 * cm], rowHeights=[3 * cm])
+    caja_sello.setStyle(
+        TableStyle([("BOX", (0, 0), (0, 0), 0.8, colors.HexColor("#888888"))])
+    )
+    sello_cell = [
+        caja_sello,
+        Spacer(1, 3),
+        Paragraph("SELLO DE LA DEPENDENCIA", sello),
+    ]
 
     info_cell = [
         Paragraph(f"<b>DEPENDENCIA:</b> {pasante.area}", info),
-        Spacer(1, 10),
-        Paragraph("<b>FIRMA Y SELLO DEL SUPERVISOR</b>", info_b),
-        Spacer(1, 6),
+        Spacer(1, 16),
+        Paragraph(
+            "_______________ &nbsp;&nbsp;&nbsp;&nbsp; _______________", firma_lineas
+        ),
+        Paragraph("<b>FIRMA Y SELLO DEL SUPERVISOR</b>", firma_lbl),
+        Spacer(1, 12),
         Paragraph(
             f"<b>NOMBRE DEL PASANTE:</b> {pasante.nombre} &nbsp;&nbsp; <b>C.I.:</b> {pasante.ci}",
             info,
         ),
         Paragraph(f"<b>FECHA DESDE EL MES DE:</b> {d} &nbsp; <b>AL:</b> {h}", info),
     ]
-    htbl = Table([[info_cell, sello_inner]], colWidths=[132 * mm, 54 * mm])
+    htbl = Table([[info_cell, sello_cell]], colWidths=[132 * mm, 54 * mm])
     htbl.setStyle(
         TableStyle(
             [
@@ -584,11 +805,25 @@ def planilla_word(request):
     for i, a in enumerate(asistencias, start=1):
         obs = []
         if a.lat_entrada is not None:
-            obs.append(f"Ing: {a.lat_entrada:.5f}, {a.lng_entrada:.5f}")
+            obs.append("Entrada marcada dentro de las instalaciones.")
         if a.lat_salida is not None:
-            obs.append(f"Sal: {a.lat_salida:.5f}, {a.lng_salida:.5f}")
+            obs.append("Salida marcada dentro de las instalaciones.")
         if a.tardanza_min:
-            obs.append(f"Tard: {a.tardanza_min} min")
+            obs.append(f"Retraso: {a.tardanza_min} min (superó la tolerancia).")
+        esp = dias_esp.get(a.fecha)
+        if esp:
+            if esp.tipo == DiaEspecial.FERIADO:
+                txt = "Feriado"
+                if esp.descripcion:
+                    txt += f": {esp.descripcion}"
+                obs.append(txt + ".")
+            else:
+                txt = "Día especial"
+                if esp.hora_entrada_especial:
+                    txt += f" (entrada {esp.hora_entrada_especial.strftime('%H:%M')})"
+                if esp.descripcion:
+                    txt += f": {esp.descripcion}"
+                obs.append(txt + ".")
         data.append(
             [
                 str(i),
@@ -600,7 +835,7 @@ def planilla_word(request):
                 "",
             ]
         )
-    for _ in range(max(0, 14 - len(asistencias))):
+    for _ in range(max(0, 16 - len(asistencias))):
         data.append([""] * 7)
 
     tbl = Table(

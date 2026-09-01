@@ -46,7 +46,7 @@ class PasanteForm(forms.ModelForm):
 class AsistenciaForm(forms.ModelForm):
     class Meta:
         model = Asistencia
-        fields = ["hora_entrada", "hora_salida", "tardanza_min", "estado"]
+        fields = ["hora_entrada", "hora_salida", "estado"]
         widgets = {
             "hora_entrada": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
             "hora_salida": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
@@ -100,10 +100,16 @@ from .models import LoginSecurity
 
 
 class LoginConBloqueoForm(AuthenticationForm):
-    """Login que rechaza el acceso si la cuenta está bloqueada por intentos fallidos."""
+    """Login con dos protecciones:
+    1) Bloqueo temporal tras varios intentos fallidos.
+    2) Vínculo de dispositivo: un pasante solo puede entrar desde su celular
+       registrado. El primer celular con el que inicia sesión queda vinculado;
+       desde otro celular, el acceso se rechaza."""
 
     def clean(self):
         username = self.cleaned_data.get("username")
+
+        # 1) Si la cuenta está bloqueada por intentos fallidos, rechazar de una vez.
         if username:
             try:
                 user = User.objects.get(username=username)
@@ -116,4 +122,61 @@ class LoginConBloqueoForm(AuthenticationForm):
                     )
             except User.DoesNotExist:
                 pass
-        return super().clean()
+
+        # 2) Validar usuario/contraseña (esto autentica).
+        cleaned = super().clean()
+
+        # 3) Validar el dispositivo SOLO para pasantes y SOLO si la clave fue correcta.
+        user = self.get_user()
+        if user and hasattr(user, "pasante"):
+            pasante = user.pasante
+            dispositivo = (self.data.get("dispositivo") or "").strip()
+
+            if not dispositivo:
+                raise forms.ValidationError(
+                    "No se pudo identificar tu dispositivo. Recarga la página e intenta de nuevo."
+                )
+
+            if not pasante.dispositivo_id:
+                # Primer celular: queda vinculado a este pasante.
+                pasante.dispositivo_id = dispositivo
+                pasante.save(update_fields=["dispositivo_id"])
+            elif pasante.dispositivo_id != dispositivo:
+                # Otro celular distinto al registrado: se rechaza el acceso.
+                raise forms.ValidationError(
+                    "Solo puedes iniciar sesión desde tu dispositivo registrado. "
+                    "Si cambiaste de celular, pide a un administrador que reinicie tu dispositivo."
+                )
+
+        return cleaned
+
+
+class RangoDiaEspecialForm(forms.Form):
+    """Para crear uno o varios días especiales (feriados que duran varios días)."""
+
+    fecha_desde = forms.DateField(
+        label="Desde",
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+    )
+    fecha_hasta = forms.DateField(
+        label="Hasta (opcional; déjalo vacío si es un solo día)",
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+    )
+    tipo = forms.ChoiceField(label="Tipo", choices=DiaEspecial.TIPOS)
+    hora_entrada_especial = forms.TimeField(
+        label="Hora de entrada especial (solo si es horario especial)",
+        required=False,
+        widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+    )
+    descripcion = forms.CharField(label="Descripción", required=False, max_length=200)
+
+    def clean(self):
+        cleaned = super().clean()
+        d = cleaned.get("fecha_desde")
+        h = cleaned.get("fecha_hasta")
+        if d and h and h < d:
+            self.add_error(
+                "fecha_hasta", "La fecha final no puede ser anterior a la inicial."
+            )
+        return cleaned

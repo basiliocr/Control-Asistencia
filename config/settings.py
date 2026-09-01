@@ -111,7 +111,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 
 # Tolerancia de tardanza en minutos
-TOLERANCIA_MINUTOS = 10
+TOLERANCIA_MINUTOS = 5
 
 
 if not DEBUG:
