@@ -1,25 +1,35 @@
-"""
-Django settings for config project.
-Preparado para desarrollo (local) y producción (servidor) mediante variables
-de entorno. En local funciona sin configurar nada; en el servidor se activan
-las protecciones al poner DJANGO_DEBUG=False.
-"""
-
 import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-%o3nh$)y2h)j#^qsag1v-&2$o3w%^$ix@hr3zm!-)49tt+)wh&",
-)
-
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-clave-solo-para-desarrollo-local"
+    else:
+        raise ImproperlyConfigured(
+            "Falta la variable de entorno DJANGO_SECRET_KEY "
+            "(es obligatoria cuando DEBUG=False)."
+        )
 
+
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".ngrok-free.app",
+    ".ngrok-free.dev",
+]
+_extra_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+if _extra_hosts:
+    ALLOWED_HOSTS += [h.strip() for h in _extra_hosts.split(",") if h.strip()]
+
+# Orígenes de confianza para CSRF. Obligatorio para que los formularios POST
+# funcionen detrás de ngrok (HTTPS). El comodín cubre el subdominio cambiante.
 CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.app",
     "https://*.ngrok-free.dev",
@@ -28,6 +38,7 @@ _extra_csrf = os.environ.get("DJANGO_CSRF_TRUSTED", "")
 if _extra_csrf:
     CSRF_TRUSTED_ORIGINS += [o.strip() for o in _extra_csrf.split(",") if o.strip()]
 
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -109,9 +120,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600
 SESSION_SAVE_EVERY_REQUEST = True
 
-
-# Tolerancia de tardanza en minutos
+# Tolerancia de tardanza (minutos) y precisión máxima aceptada del GPS (metros)
 TOLERANCIA_MINUTOS = 5
+PRECISION_MAXIMA_METROS = 100
 
 
 if not DEBUG:

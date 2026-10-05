@@ -5,10 +5,6 @@ from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 from registro.forms import LoginConBloqueoForm
 
-# El panel gris de Django (admin) es SOLO para staff.
-# - Si entra alguien sin sesión -> lo mandamos a NUESTRO login (verde).
-# - Si entra un pasante ya autenticado -> en vez de mostrarle el login gris de
-#   "no autorizado", lo mandamos a su pantalla normal (la raíz).
 _admin_login_original = admin.site.login
 
 

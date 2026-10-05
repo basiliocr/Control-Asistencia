@@ -1,5 +1,13 @@
+from datetime import timedelta as _td
+
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone as _tz
+from django.contrib.auth.signals import (
+    user_login_failed as _fail_sig,
+    user_logged_in as _ok_sig,
+)
+from django.dispatch import receiver as _receiver
 
 
 class Pasante(models.Model):
@@ -119,26 +127,22 @@ class Institucion(models.Model):
         return obj
 
 
-from django.utils import timezone as _tz
-from datetime import timedelta as _td
+class _SeguridadBloqueo(models.Model):
+    """Lógica común de bloqueo escalonado tras varios intentos fallidos.
+    La comparten el bloqueo por usuario y el bloqueo por IP."""
 
-
-class LoginSecurity(models.Model):
     UMBRAL = 3  # fallos antes de empezar a bloquear
     # Duración del bloqueo según el nivel (en segundos): 30s, 1m, 2m, 5m, 10m
     DURACIONES = {1: 30, 2: 60, 3: 120, 4: 300, 5: 600}
     TOPE = 900  # 15 min a partir del nivel 6
 
-    usuario = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="login_security"
-    )
     intentos_fallidos = models.PositiveIntegerField(default=0)
     nivel_bloqueo = models.PositiveIntegerField(default=0)
     bloqueado_hasta = models.DateTimeField(null=True, blank=True)
     ultimo_intento = models.DateTimeField(null=True, blank=True)
 
-    def __str__(self):
-        return self.usuario.username
+    class Meta:
+        abstract = True
 
     def esta_bloqueado(self):
         return bool(self.bloqueado_hasta and self.bloqueado_hasta > _tz.now())
@@ -172,27 +176,64 @@ class LoginSecurity(models.Model):
         self.save()
 
 
-from django.contrib.auth.signals import (
-    user_login_failed as _fail_sig,
-    user_logged_in as _ok_sig,
-)
-from django.dispatch import receiver as _receiver
+class LoginSecurity(_SeguridadBloqueo):
+    """Bloqueo por cuenta de usuario."""
+
+    usuario = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="login_security"
+    )
+
+    def __str__(self):
+        return self.usuario.username
+
+
+class IPSecurity(_SeguridadBloqueo):
+
+    UMBRAL = 10
+    DURACIONES = {1: 60, 2: 300, 3: 900}
+    TOPE = 1800  # 30 min
+
+    ip = models.CharField(max_length=45, unique=True)  # admite IPv4 e IPv6
+
+    def __str__(self):
+        return self.ip
+
+
+def obtener_ip(request):
+    """IP real del cliente. Detrás de ngrok (o cualquier proxy) la IP del
+    visitante llega en la cabecera X-Forwarded-For; si no, se usa REMOTE_ADDR."""
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "")
 
 
 @_receiver(_fail_sig)
-def _registrar_login_fallido(sender, credentials, **kwargs):
+def _registrar_login_fallido(sender, credentials, request=None, **kwargs):
+    # Fallo por usuario (si la cuenta existe).
     username = (credentials or {}).get("username")
-    if not username:
-        return
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return
-    sec, _ = LoginSecurity.objects.get_or_create(usuario=user)
-    sec.registrar_fallo()
+    if username:
+        try:
+            user = User.objects.get(username=username)
+            sec, _ = LoginSecurity.objects.get_or_create(usuario=user)
+            sec.registrar_fallo()
+        except User.DoesNotExist:
+            pass
+    # Fallo por IP (cubre usuarios inexistentes y la fuerza bruta en general).
+    if request is not None:
+        ip = obtener_ip(request)
+        if ip:
+            sec_ip, _ = IPSecurity.objects.get_or_create(ip=ip)
+            sec_ip.registrar_fallo()
 
 
 @_receiver(_ok_sig)
 def _registrar_login_exitoso(sender, request, user, **kwargs):
     sec, _ = LoginSecurity.objects.get_or_create(usuario=user)
     sec.registrar_exito()
+    # Al entrar bien, se limpia también el contador de la IP.
+    if request is not None:
+        ip = obtener_ip(request)
+        if ip:
+            sec_ip, _ = IPSecurity.objects.get_or_create(ip=ip)
+            sec_ip.registrar_exito()

@@ -1,5 +1,5 @@
 from io import BytesIO
-
+from django.db.models import Sum
 import openpyxl
 from openpyxl.styles import Font, PatternFill
 
@@ -37,6 +37,7 @@ def marcar(request):
         lat = request.POST.get("lat")
         lng = request.POST.get("lng")
         dispositivo = request.POST.get("dispositivo")
+        precision = request.POST.get("precision")
         resultado = registrar_con_gps(pasante, tipo, lat, lng, dispositivo)
 
     inst = Institucion.obtener()
@@ -56,16 +57,35 @@ def marcar(request):
 @staff_member_required
 def panel(request):
     hoy = timezone.localdate()
+    activos = Pasante.objects.filter(activo=True)
+    total = activos.count()
+
+    asis_hoy = Asistencia.objects.filter(fecha=hoy)
+    marcaron = asis_hoy.count()  # una fila por pasante y día (unique_together)
+    a_tiempo = asis_hoy.filter(hora_entrada__isnull=False, tardanza_min=0).count()
+    tardanzas = asis_hoy.filter(tardanza_min__gt=0).count()
+    sin_salida = asis_hoy.filter(hora_salida__isnull=True).count()
+    porcentaje = round(marcaron / total * 100) if total else 0
+
+    # Pasantes activos que todavía no marcaron hoy.
+    ids_marcaron = asis_hoy.values_list("pasante_id", flat=True)
+    pendientes = activos.exclude(id__in=ids_marcaron).order_by("nombre")[:8]
+    pendientes_total = activos.exclude(id__in=ids_marcaron).count()
+
     return render(
         request,
         "registro/panel.html",
         {
             "institucion": Institucion.obtener(),
-            "total_pasantes": Pasante.objects.filter(activo=True).count(),
-            "asistencias_hoy": Asistencia.objects.filter(fecha=hoy).count(),
-            "tardanzas_hoy": Asistencia.objects.filter(
-                fecha=hoy, tardanza_min__gt=0
-            ).count(),
+            "hoy": hoy,
+            "total_pasantes": total,
+            "marcaron": marcaron,
+            "porcentaje": porcentaje,
+            "a_tiempo": a_tiempo,
+            "tardanzas_hoy": tardanzas,
+            "sin_salida": sin_salida,
+            "pendientes": pendientes,
+            "pendientes_total": pendientes_total,
         },
     )
 
@@ -165,38 +185,34 @@ def pasante_eliminar(request, pk):
 
 @staff_member_required
 def asistencias_lista(request):
-    # La lista solo se muestra DESPUÉS de filtrar (evita cargar todo de golpe).
-    filtrado = bool(
-        request.GET.get("desde")
-        or request.GET.get("hasta")
-        or request.GET.get("pasante") is not None
-    )
-
+    # La lista solo se muestra DESPUÉS de buscar por C.I. (evita cargar todo de golpe).
     hoy = timezone.localdate()
     desde = request.GET.get("desde") or hoy.replace(day=1).isoformat()
     hasta = request.GET.get("hasta") or hoy.isoformat()
-    pasante_id = request.GET.get("pasante") or ""
+    ci = (request.GET.get("ci") or "").strip()
 
     asistencias = None
-    if filtrado:
+    pasante_sel = None
+    if ci:
         asistencias = (
             Asistencia.objects.select_related("pasante")
-            .filter(fecha__gte=desde, fecha__lte=hasta)
+            .filter(pasante__ci__icontains=ci, fecha__gte=desde, fecha__lte=hasta)
             .order_by("-fecha", "pasante__nombre")
         )
-        if pasante_id:
-            asistencias = asistencias.filter(pasante_id=pasante_id)
+        coincidencias = Pasante.objects.filter(ci__icontains=ci)
+        if coincidencias.count() == 1:
+            pasante_sel = coincidencias.first()
 
     return render(
         request,
         "registro/asistencias_lista.html",
         {
             "asistencias": asistencias,
-            "pasantes": Pasante.objects.order_by("nombre"),
+            "ci": ci,
+            "buscado": bool(ci),
             "desde": desde,
             "hasta": hasta,
-            "pasante_id": pasante_id,
-            "filtrado": filtrado,
+            "pasante_sel": pasante_sel,
         },
     )
 
@@ -448,41 +464,48 @@ def dia_eliminar(request, pk):
 # --------------------------- Reportes ---------------------------
 
 
-def _asistencias_filtradas(request):
+@staff_member_required
+def reportes(request):
     hoy = timezone.localdate()
     desde = request.GET.get("desde") or hoy.replace(day=1).isoformat()
     hasta = request.GET.get("hasta") or hoy.isoformat()
-    pasante_id = request.GET.get("pasante") or ""
-    asistencias = (
-        Asistencia.objects.select_related("pasante")
-        .filter(fecha__gte=desde, fecha__lte=hasta)
-        .order_by("-fecha", "pasante__nombre")
-    )
-    if pasante_id:
-        asistencias = asistencias.filter(pasante_id=pasante_id)
-    return asistencias, desde, hasta, pasante_id
+    ci = (request.GET.get("ci") or "").strip()
 
+    asistencias = Asistencia.objects.none()
+    pasante_sel = None
+    total = con_tardanza = minutos_tardanza = 0
 
-@staff_member_required
-def reportes(request):
-    asistencias, desde, hasta, pasante_id = _asistencias_filtradas(request)
+    # Solo se muestran resultados cuando se busca por C.I.
+    if ci:
+        asistencias = (
+            Asistencia.objects.select_related("pasante")
+            .filter(pasante__ci__icontains=ci, fecha__gte=desde, fecha__lte=hasta)
+            .order_by("-fecha", "pasante__nombre")
+        )
 
-    if request.GET.get("export") == "excel":
-        return _exportar_excel(asistencias, desde, hasta)
+        if request.GET.get("export") == "excel":
+            return _exportar_excel(asistencias, desde, hasta)
 
-    total = asistencias.count()
-    con_tardanza = asistencias.filter(tardanza_min__gt=0).count()
-    minutos_tardanza = sum(a.tardanza_min for a in asistencias)
+        # Si el C.I. coincide con un único pasante, se muestran sus datos.
+        coincidencias = Pasante.objects.filter(ci__icontains=ci)
+        if coincidencias.count() == 1:
+            pasante_sel = coincidencias.first()
+
+        total = asistencias.count()
+        con_tardanza = asistencias.filter(tardanza_min__gt=0).count()
+        # Suma hecha en la base de datos (más eficiente que sumar en Python).
+        minutos_tardanza = asistencias.aggregate(s=Sum("tardanza_min"))["s"] or 0
 
     return render(
         request,
         "registro/reportes.html",
         {
             "asistencias": asistencias,
-            "pasantes": Pasante.objects.order_by("nombre"),
+            "ci": ci,
+            "buscado": bool(ci),
             "desde": desde,
             "hasta": hasta,
-            "pasante_id": pasante_id,
+            "pasante_sel": pasante_sel,
             "total": total,
             "con_tardanza": con_tardanza,
             "minutos_tardanza": minutos_tardanza,
@@ -546,6 +569,7 @@ def _exportar_excel(asistencias, desde, hasta):
     return response
 
 
+@staff_member_required
 def admins_lista(request):
     admins = User.objects.filter(is_staff=True).order_by("username")
     return render(request, "registro/admins_lista.html", {"admins": admins})
@@ -637,13 +661,15 @@ def admin_eliminar(request, pk):
 @staff_member_required
 def pasante_reset_dispositivo(request, pk):
     pasante = get_object_or_404(Pasante, pk=pk)
-    pasante.dispositivo_id = ""
-    pasante.save(update_fields=["dispositivo_id"])
-    messages.success(
-        request,
-        f"Dispositivo de «{pasante.nombre}» reiniciado. Podrá vincular un celular nuevo en su próxima marca.",
-    )
-    return redirect("pasantes_lista")
+    if request.method == "POST":
+        pasante.dispositivo_id = ""
+        pasante.save(update_fields=["dispositivo_id"])
+        messages.success(
+            request,
+            f"Dispositivo de «{pasante.nombre}» reiniciado. Podrá vincular un celular nuevo en su próxima marca.",
+        )
+        return redirect("pasantes_lista")
+    return render(request, "registro/reset_dispositivo.html", {"pasante": pasante})
 
 
 @staff_member_required
@@ -731,7 +757,7 @@ def planilla_word(request):
         "h", fontName="Helvetica-Bold", fontSize=8, alignment=TA_CENTER, leading=10
     )
     obs_st = ParagraphStyle(
-        "o", fontName="Helvetica", fontSize=7, alignment=TA_LEFT, leading=8.5
+        "o", fontName="Helvetica", fontSize=7, alignment=TA_CENTER, leading=8.5
     )
 
     d = timezone.datetime.fromisoformat(desde).strftime("%d/%m/%Y")
@@ -804,12 +830,9 @@ def planilla_word(request):
 
     for i, a in enumerate(asistencias, start=1):
         obs = []
-        if a.lat_entrada is not None:
-            obs.append("Entrada marcada dentro de las instalaciones.")
-        if a.lat_salida is not None:
-            obs.append("Salida marcada dentro de las instalaciones.")
         if a.tardanza_min:
-            obs.append(f"Retraso: {a.tardanza_min} min (superó la tolerancia).")
+            unidad = "minuto" if a.tardanza_min == 1 else "minutos"
+            obs.append(f"Se retrasó {a.tardanza_min} {unidad}.")
         esp = dias_esp.get(a.fecha)
         if esp:
             if esp.tipo == DiaEspecial.FERIADO:
@@ -824,6 +847,9 @@ def planilla_word(request):
                 if esp.descripcion:
                     txt += f": {esp.descripcion}"
                 obs.append(txt + ".")
+        # Si no hubo retraso ni nota del día, se deja constancia explícita.
+        if not obs:
+            obs.append("Sin observaciones.")
         data.append(
             [
                 str(i),

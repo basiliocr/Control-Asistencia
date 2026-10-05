@@ -1,9 +1,3 @@
-"""
-Lógica central de marcación de asistencia.
-Valida ubicación (GPS) y dispositivo (celular vinculado) antes de registrar.
-La hora la pone el servidor. Las coordenadas de cada marca se guardan.
-"""
-
 from datetime import datetime, timedelta
 from math import radians, sin, cos, asin, sqrt
 
@@ -20,6 +14,29 @@ class ResultadoMarca:
         self.asistencia = asistencia
 
 
+MSG_SIN_DISPOSITIVO = (
+    "No se pudo identificar tu dispositivo. Recarga la página e intenta de nuevo."
+)
+MSG_OTRO_DISPOSITIVO = (
+    "Este no es el dispositivo registrado para tu cuenta. Solo puedes usar tu "
+    "celular vinculado. Si cambiaste de teléfono, pide a un administrador que "
+    "reinicie tu dispositivo."
+)
+
+
+def verificar_o_vincular_dispositivo(pasante, dispositivo):
+    dispositivo = (dispositivo or "").strip()
+    if not dispositivo:
+        return False, MSG_SIN_DISPOSITIVO
+    if not pasante.dispositivo_id:
+        pasante.dispositivo_id = dispositivo
+        pasante.save(update_fields=["dispositivo_id"])
+        return True, None
+    if pasante.dispositivo_id != dispositivo:
+        return False, MSG_OTRO_DISPOSITIVO
+    return True, None
+
+
 def distancia_metros(lat1, lng1, lat2, lng2):
     R = 6371000
     dlat = radians(lat2 - lat1)
@@ -31,25 +48,10 @@ def distancia_metros(lat1, lng1, lat2, lng2):
     return 2 * R * asin(sqrt(a))
 
 
-def registrar_con_gps(pasante, tipo, lat, lng, dispositivo=None):
-    # --- 1. Validar el dispositivo (celular vinculado) ---
-    dispositivo = (dispositivo or "").strip()
-    if not dispositivo:
-        return ResultadoMarca(
-            False,
-            "No se pudo identificar tu dispositivo. Recarga la página e intenta de nuevo.",
-        )
-
-    if not pasante.dispositivo_id:
-        pasante.dispositivo_id = dispositivo
-        pasante.save(update_fields=["dispositivo_id"])
-    elif pasante.dispositivo_id != dispositivo:
-        return ResultadoMarca(
-            False,
-            "Este no es el dispositivo registrado para tu cuenta. Solo puedes marcar "
-            "desde tu celular vinculado. Si cambiaste de teléfono, pide a un administrador "
-            "que reinicie tu dispositivo.",
-        )
+def registrar_con_gps(pasante, tipo, lat, lng, dispositivo=None, precision=None):
+    ok, error = verificar_o_vincular_dispositivo(pasante, dispositivo)
+    if not ok:
+        return ResultadoMarca(False, error)
 
     try:
         lat = float(lat)
@@ -58,6 +60,19 @@ def registrar_con_gps(pasante, tipo, lat, lng, dispositivo=None):
         return ResultadoMarca(
             False, "No se recibió tu ubicación. Activa el GPS y vuelve a intentar."
         )
+    precision_max = getattr(settings, "PRECISION_MAXIMA_METROS", 0)
+    if precision_max:
+        try:
+            precision = float(precision)
+        except (TypeError, ValueError):
+            precision = None
+        if precision is None or precision > precision_max:
+            return ResultadoMarca(
+                False,
+                "La ubicación recibida es poco precisa (posible GPS por Wi-Fi o "
+                "ubicación simulada). Activa el GPS de alta precisión y marca desde "
+                "tu celular, de preferencia al aire libre.",
+            )
 
     inst = Institucion.obtener()
     distancia = distancia_metros(lat, lng, inst.latitud, inst.longitud)

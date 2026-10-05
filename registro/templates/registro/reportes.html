@@ -1,402 +1,285 @@
-<!DOCTYPE html>
-<html lang="es">
+{% extends "registro/base.html" %}
+{% block titulo %}Reportes{% endblock %}
+{% block contenido %}
+<style>
+    .filtros {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes de Asistencia</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
-    <style>
-        :root {
-            --green: #16a05a;
-            --green-d: #0d7a43;
-            --deep-1: #0a2723;
-            --deep-2: #10403a;
-            --azul: #1f6fce;
-            --tenue: #6a847e;
-            --borde: #e4ede9;
-            --rojo: #c0392b;
-            --ink: #12332c;
-            --radius: 16px;
-            --shadow: 0 10px 30px rgba(15, 45, 40, .07);
-        }
+    .filtros .campo {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    .filtros .campo label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--tenue);
+        margin-bottom: 6px;
+    }
 
-        body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #eef3f1;
-            color: var(--ink);
-            min-height: 100vh;
-        }
+    .filtros .campo select,
+    .filtros .campo input {
+        width: auto;
+        min-width: 160px;
+        padding: 11px 13px;
+        font-size: 14px;
+        font-family: inherit;
+        border: 1.5px solid var(--borde);
+        border-radius: 10px;
+        background: #fbfdfc;
+    }
 
-        .barra {
-            background: linear-gradient(165deg, var(--deep-2), var(--deep-1));
-            color: #fff;
-            padding: 15px 28px;
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
+    .botones {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-        .barra .logo {
-            font-family: "Space Grotesk", sans-serif;
-            font-weight: 700;
-            font-size: 16px;
-            text-decoration: none;
-            color: #fff;
-        }
+    .btn-filtrar {
+        background: linear-gradient(160deg, var(--green), var(--green-d));
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(13, 122, 67, .22);
+    }
 
-        .barra nav {
-            display: flex;
-            gap: 4px;
-            flex: 1;
-        }
+    .btn-filtrar:hover {
+        filter: brightness(1.05);
+    }
 
-        .barra nav a {
-            color: rgba(255, 255, 255, .8);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 8px 14px;
-            border-radius: 9px;
-            transition: background .15s;
-        }
+    .btn-excel {
+        background: #e6ece9;
+        color: var(--ink);
+    }
 
-        .barra nav a:hover,
-        .barra nav a.activo {
-            background: rgba(255, 255, 255, .13);
-            color: #fff;
-        }
+    .btn-excel:hover {
+        background: #dde5e1;
+    }
 
-        .barra .salir {
-            background: rgba(255, 255, 255, .1);
-            border: 1px solid rgba(255, 255, 255, .22);
-            color: #fff;
-            border-radius: 9px;
-            padding: 8px 14px;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-        }
+    /* Tarjeta con los datos del pasante encontrado */
+    .pasante-info {
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 22px 24px;
+        margin-bottom: 24px;
+        border-left: 5px solid var(--green);
+    }
 
-        .barra .salir:hover {
-            background: rgba(255, 255, 255, .2);
-        }
+    .pasante-info h2 {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 19px;
+        font-weight: 600;
+        margin-bottom: 14px;
+    }
 
-        .contenedor {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 30px 28px 48px;
-        }
+    .pasante-info .datos {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 14px 24px;
+    }
 
-        h1 {
-            font-family: "Space Grotesk", sans-serif;
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 22px;
-        }
+    .pasante-info .dato .k {
+        font-size: 12px;
+        color: var(--tenue);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
 
-        .filtros {
-            background: #fff;
-            border-radius: var(--radius);
-            padding: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            align-items: flex-end;
-            box-shadow: var(--shadow);
-            margin-bottom: 24px;
-        }
+    .pasante-info .dato .v {
+        font-size: 15px;
+        margin-top: 3px;
+    }
 
-        .campo {
-            display: flex;
-            flex-direction: column;
-        }
+    .resumen {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
 
-        .campo label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--tenue);
-            margin-bottom: 6px;
-        }
+    .tarjeta-resumen {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 20px 22px;
+        flex: 1;
+        min-width: 150px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+    }
 
-        .campo select,
-        .campo input {
-            padding: 11px 13px;
-            font-size: 14px;
-            font-family: inherit;
-            border: 1.5px solid var(--borde);
-            border-radius: 10px;
-            background: #fbfdfc;
-            min-width: 160px;
-        }
+    .tarjeta-resumen::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--green);
+    }
 
-        .campo select:focus,
-        .campo input:focus {
-            outline: none;
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px rgba(22, 160, 90, .15);
-        }
+    .tarjeta-resumen .num {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 30px;
+        font-weight: 600;
+        line-height: 1;
+    }
 
-        .botones {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+    .tarjeta-resumen .txt {
+        font-size: 13px;
+        color: var(--tenue);
+        margin-top: 7px;
+    }
 
-        .btn {
-            border: none;
-            border-radius: 11px;
-            padding: 11px 18px;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: transform .08s, filter .15s;
-        }
+    .tarde {
+        color: var(--rojo);
+        font-weight: 600;
+    }
 
-        .btn:active {
-            transform: translateY(1px);
-        }
+    .vacio {
+        text-align: center;
+        color: var(--tenue);
+        padding: 30px;
+    }
 
-        .btn-filtrar {
-            background: linear-gradient(160deg, var(--green), var(--green-d));
-            color: #fff;
-            box-shadow: 0 6px 16px rgba(13, 122, 67, .22);
-        }
+    .aviso-inicial {
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 40px 24px;
+        text-align: center;
+        color: var(--tenue);
+        font-size: 15px;
+    }
+</style>
 
-        .btn-filtrar:hover {
-            filter: brightness(1.05);
-        }
+<div class="cabecera">
+    <h1>Reportes de Asistencia</h1>
+</div>
 
-        .btn-excel {
-            background: #e6ece9;
-            color: var(--ink);
-        }
-
-        .btn-excel:hover {
-            background: #dde5e1;
-        }
-
-        .resumen {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .tarjeta-resumen {
-            background: #fff;
-            border-radius: var(--radius);
-            padding: 20px 22px;
-            flex: 1;
-            min-width: 150px;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .tarjeta-resumen::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: var(--green);
-        }
-
-        .tarjeta-resumen .num {
-            font-family: "Space Grotesk", sans-serif;
-            font-size: 30px;
-            font-weight: 600;
-            line-height: 1;
-        }
-
-        .tarjeta-resumen .txt {
-            font-size: 13px;
-            color: var(--tenue);
-            margin-top: 7px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-
-        th {
-            background: #123f38;
-            color: #eafaf3;
-            font-family: "Space Grotesk", sans-serif;
-            font-weight: 600;
-            font-size: 12.5px;
-            text-align: left;
-            padding: 13px 15px;
-        }
-
-        td {
-            padding: 12px 15px;
-            font-size: 14px;
-            border-top: 1px solid #eef3f1;
-        }
-
-        tr:hover td {
-            background: #f6faf8;
-        }
-
-        .tarde {
-            color: var(--rojo);
-            font-weight: 600;
-        }
-
-        .vacio {
-            text-align: center;
-            color: var(--tenue);
-            padding: 30px;
-        }
-
-        :focus-visible {
-            outline: 3px solid #57c79a;
-            outline-offset: 2px;
-        }
-
-        @media (max-width: 640px) {
-            .barra {
-                flex-wrap: wrap;
-                gap: 10px 16px;
-                padding: 14px 18px;
-            }
-
-            .contenedor {
-                padding: 22px 16px 40px;
-            }
-
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <div class="barra">
-        <a class="logo" href="{% url 'panel' %}">Asistencia · Administración</a>
-        <nav>
-            <a href="{% url 'panel' %}">Panel</a>
-            <a href="{% url 'pasantes_lista' %}">Pasantes</a>
-            <a href="{% url 'reportes' %}" class="activo">Reportes</a>
-            <a href="{% url 'admins_lista' %}">Admins</a>
-        </nav>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="salir">Cerrar sesión</button>
-        </form>
+<form method="get" class="filtros">
+    <div class="campo">
+        <label for="ci">Buscar por C.I.</label>
+        <input type="text" name="ci" id="ci" value="{{ ci }}" placeholder="Ej. 8377188" autocomplete="off" autofocus>
     </div>
+    <div class="campo">
+        <label for="desde">Desde</label>
+        <input type="date" name="desde" id="desde" value="{{ desde }}">
+    </div>
+    <div class="campo">
+        <label for="hasta">Hasta</label>
+        <input type="date" name="hasta" id="hasta" value="{{ hasta }}">
+    </div>
+    <div class="botones">
+        <button type="submit" class="btn btn-filtrar">Buscar</button>
+        {% if buscado %}
+        <button type="submit" name="export" value="excel" class="btn btn-excel">Exportar a Excel</button>
+        {% endif %}
+        {% if pasante_sel %}
+        <a class="btn btn-excel"
+            href="{% url 'planilla_pdf' %}?pasante={{ pasante_sel.id }}&desde={{ desde }}&hasta={{ hasta }}">Descargar
+            planilla (PDF)</a>
+        {% endif %}
+    </div>
+</form>
 
-    <div class="contenedor">
-        <h1>Reportes de Asistencia</h1>
-        <form method="get" class="filtros">
-            <div class="campo">
-                <label for="pasante">Pasante</label>
-                <select name="pasante" id="pasante">
-                    <option value="">Todos</option>
-                    {% for p in pasantes %}
-                    {% if p.id|stringformat:"s" == pasante_id %}
-                    <option value="{{ p.id }}" selected>{{ p.nombre }}</option>
-                    {% else %}
-                    <option value="{{ p.id }}">{{ p.nombre }}</option>
-                    {% endif %}
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="campo">
-                <label for="desde">Desde</label>
-                <input type="date" name="desde" id="desde" value="{{ desde }}">
-            </div>
-            <div class="campo">
-                <label for="hasta">Hasta</label>
-                <input type="date" name="hasta" id="hasta" value="{{ hasta }}">
-            </div>
-            <div class="botones">
-                <button type="submit" class="btn btn-filtrar">Filtrar</button>
-                <button type="submit" name="export" value="excel" class="btn btn-excel">Exportar a Excel</button>
-                {% if pasante_id %}
-                <a class="btn btn-excel"
-                    href="{% url 'planilla_pdf' %}?pasante={{ pasante_id }}&desde={{ desde }}&hasta={{ hasta }}">Descargar
-                    planilla
-                    (PDF)</a>
-                {% endif %}
-            </div>
-        </form>
-        <div class="resumen">
-            <div class="tarjeta-resumen">
-                <div class="num">{{ total }}</div>
-                <div class="txt">Registros</div>
-            </div>
-            <div class="tarjeta-resumen">
-                <div class="num">{{ con_tardanza }}</div>
-                <div class="txt">Con tardanza</div>
-            </div>
-            <div class="tarjeta-resumen">
-                <div class="num">{{ minutos_tardanza }}</div>
-                <div class="txt">Minutos de tardanza acumulados</div>
+{% if not buscado %}
+<div class="aviso-inicial">
+    Escribe el C.I. de un usuario y presiona <strong>Buscar</strong> para ver sus datos y sus registros de asistencia.
+</div>
+{% else %}
+
+{% if pasante_sel %}
+<div class="pasante-info">
+    <h2>{{ pasante_sel.nombre }}</h2>
+    <div class="datos">
+        <div class="dato">
+            <div class="k">C.I.</div>
+            <div class="v">{{ pasante_sel.ci }}</div>
+        </div>
+        <div class="dato">
+            <div class="k">Identificador</div>
+            <div class="v">{{ pasante_sel.identificador }}</div>
+        </div>
+        <div class="dato">
+            <div class="k">Área</div>
+            <div class="v">{{ pasante_sel.area }}</div>
+        </div>
+        <div class="dato">
+            <div class="k">Horario</div>
+            <div class="v">{{ pasante_sel.horario_entrada|time:"H:i" }} – {{ pasante_sel.horario_salida|time:"H:i" }}
             </div>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Pasante</th>
-                    <th>Área</th>
-                    <th>Fecha</th>
-                    <th>Entrada</th>
-                    <th>Salida</th>
-                    <th>Tardanza</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for a in asistencias %}
-                <tr>
-                    <td>{{ a.pasante.nombre }}</td>
-                    <td>{{ a.pasante.area }}</td>
-                    <td>{{ a.fecha|date:"d/m/Y" }}</td>
-                    <td>{{ a.hora_entrada|time:"H:i"|default:"—" }}</td>
-                    <td>{{ a.hora_salida|time:"H:i"|default:"—" }}</td>
-                    <td>
-                        {% if a.tardanza_min %}
-                        <span class="tarde">{{ a.tardanza_min }} min</span>
-                        {% else %}
-                        —
-                        {% endif %}
-                    </td>
-                    <td>{{ a.get_estado_display }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="vacio">No hay registros en este rango.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="dato">
+            <div class="k">Estado</div>
+            <div class="v">{% if pasante_sel.activo %}Activo{% else %}Dado de baja{% endif %}</div>
+        </div>
     </div>
-</body>
+</div>
+{% endif %}
 
-</html>
+<div class="resumen">
+    <div class="tarjeta-resumen">
+        <div class="num">{{ total }}</div>
+        <div class="txt">Registros</div>
+    </div>
+    <div class="tarjeta-resumen">
+        <div class="num">{{ con_tardanza }}</div>
+        <div class="txt">Con tardanza</div>
+    </div>
+    <div class="tarjeta-resumen">
+        <div class="num">{{ minutos_tardanza }}</div>
+        <div class="txt">Minutos de tardanza acumulados</div>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Pasante</th>
+            <th>C.I.</th>
+            <th>Área</th>
+            <th>Fecha</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Tardanza</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in asistencias %}
+        <tr>
+            <td>{{ a.pasante.nombre }}</td>
+            <td>{{ a.pasante.ci }}</td>
+            <td>{{ a.pasante.area }}</td>
+            <td>{{ a.fecha|date:"d/m/Y" }}</td>
+            <td>{{ a.hora_entrada|time:"H:i"|default:"—" }}</td>
+            <td>{{ a.hora_salida|time:"H:i"|default:"—" }}</td>
+            <td>
+                {% if a.tardanza_min %}
+                <span class="tarde">{{ a.tardanza_min }} min</span>
+                {% else %}
+                —
+                {% endif %}
+            </td>
+            <td>{{ a.get_estado_display }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8" class="vacio">No se encontraron registros para ese C.I. en este rango.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

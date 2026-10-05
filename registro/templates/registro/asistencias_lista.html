@@ -1,59 +1,137 @@
 {% extends "registro/base.html" %}
-{% block titulo %}Planilla{% endblock %}
+{% block titulo %}Asistencias{% endblock %}
 {% block contenido %}
 <style>
-    .tarde-txt {
-        color: #c0392b;
+    .filtros {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+    }
+
+    .filtros .campo {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+    }
+
+    .filtros .campo label {
+        font-size: 12px;
         font-weight: 600;
+        color: var(--tenue);
+        margin-bottom: 6px;
+    }
+
+    .filtros .campo input {
+        width: auto;
+        min-width: 160px;
+        padding: 11px 13px;
+        font-size: 14px;
+        font-family: inherit;
+        border: 1.5px solid var(--borde);
+        border-radius: 10px;
+        background: #fbfdfc;
+    }
+
+    .pasante-info {
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px 22px;
+        margin-bottom: 20px;
+        border-left: 5px solid var(--green);
+    }
+
+    .pasante-info h2 {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .pasante-info p {
+        font-size: 13px;
+        color: var(--tenue);
+        margin-top: 4px;
+    }
+
+    .tarde-txt {
+        color: var(--rojo);
+        font-weight: 600;
+    }
+
+    .vacio {
+        text-align: center;
+        color: var(--tenue);
+        padding: 30px;
+    }
+
+    .aviso-inicial {
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 40px 24px;
+        text-align: center;
+        color: var(--tenue);
+        font-size: 15px;
     }
 </style>
 
 <div class="cabecera">
-    <h1>Planilla de asistencias</h1>
+    <h1>Asistencias</h1>
 </div>
 
-<form method="get"
-    style="background:#fff;border-radius:12px;padding:16px;display:flex;gap:14px;align-items:flex-end;box-shadow:0 4px 14px rgba(0,0,0,0.06);margin-bottom:18px;flex-wrap:wrap;">
-    <div class="campo" style="margin:0;">
-        <label for="pasante">Pasante</label>
-        <select name="pasante" id="pasante" style="min-width:160px;">
-            <option value="">Todos</option>
-            {% for p in pasantes %}
-            {% if p.id|stringformat:"s" == pasante_id %}
-            <option value="{{ p.id }}" selected>{{ p.nombre }}</option>
-            {% else %}
-            <option value="{{ p.id }}">{{ p.nombre }}</option>
-            {% endif %}
-            {% endfor %}
-        </select>
+<form method="get" class="filtros">
+    <div class="campo">
+        <label for="ci">Buscar por C.I.</label>
+        <input type="text" name="ci" id="ci" value="{{ ci }}" placeholder="Ej. 8377188" autocomplete="off" autofocus>
     </div>
-    <div class="campo" style="margin:0;">
+    <div class="campo">
         <label for="desde">Desde</label>
         <input type="date" name="desde" id="desde" value="{{ desde }}">
     </div>
-    <div class="campo" style="margin:0;">
+    <div class="campo">
         <label for="hasta">Hasta</label>
         <input type="date" name="hasta" id="hasta" value="{{ hasta }}">
     </div>
-    <button type="submit" class="btn btn-verde">Filtrar</button>
+    <button type="submit" class="btn btn-verde">Buscar</button>
 </form>
 
-{% if filtrado %}
+{% if not buscado %}
+<div class="aviso-inicial">
+    Escribe el C.I. de un usuario y presiona <strong>Buscar</strong> para ver y corregir sus marcaciones.
+</div>
+{% else %}
+
+{% if pasante_sel %}
+<div class="pasante-info">
+    <h2>{{ pasante_sel.nombre }}</h2>
+    <p>C.I. {{ pasante_sel.ci }} · {{ pasante_sel.identificador }} · {{ pasante_sel.area }}</p>
+</div>
+{% endif %}
+
 <table>
     <thead>
         <tr>
-            <th>Pasante</th>
+            <th>Usuario</th>
+            <th>C.I.</th>
             <th>Fecha</th>
             <th>Entrada</th>
             <th>Salida</th>
             <th>Tardanza</th>
             <th>Estado</th>
+            <th>Acciones</th>
         </tr>
     </thead>
     <tbody>
         {% for a in asistencias %}
         <tr>
             <td>{{ a.pasante.nombre }}</td>
+            <td>{{ a.pasante.ci }}</td>
             <td>{{ a.fecha|date:"d/m/Y" }}</td>
             <td>{{ a.hora_entrada|time:"H:i"|default:"—" }}</td>
             <td>{{ a.hora_salida|time:"H:i"|default:"—" }}</td>
@@ -65,22 +143,17 @@
                 {% endif %}
             </td>
             <td>{{ a.get_estado_display }}</td>
+            <td class="acciones">
+                <a class="a-editar" href="{% url 'asistencia_editar' a.pk %}">Editar</a>
+                <a class="a-eliminar" href="{% url 'asistencia_eliminar' a.pk %}">Eliminar</a>
+            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6" style="text-align:center;color:#5c7370;padding:26px;">No hay registros en este rango.</td>
+            <td colspan="8" class="vacio">No se encontraron registros para ese C.I. en este rango.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
-{% else %}
-<div style="background:#fff;border-radius:14px;padding:44px 24px;text-align:center;
-            box-shadow:0 4px 14px rgba(0,0,0,0.06);color:#5c7370;">
-    <div style="font-size:34px;margin-bottom:10px;"></div>
-    <div style="font-size:15px;line-height:1.5;">
-        Elige un <strong>pasante</strong> y un <strong>rango de fechas</strong>,<br>
-        y presiona <strong>Filtrar</strong> para ver las asistencias.
-    </div>
-</div>
 {% endif %}
 {% endblock %}

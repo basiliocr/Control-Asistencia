@@ -1,307 +1,346 @@
-<!DOCTYPE html>
-<html lang="es">
+{% extends "registro/base.html" %}
+{% block titulo %}Panel{% endblock %}
+{% block contenido %}
+<style>
+    .panel-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
-    <style>
-        :root {
-            --green: #16a05a;
-            --green-d: #0d7a43;
-            --deep-1: #0a2723;
-            --deep-2: #10403a;
-            --azul: #1f6fce;
-            --tenue: #6a847e;
-            --borde: #e4ede9;
-            --rojo: #c0392b;
-            --ink: #12332c;
-            --radius: 16px;
-            --shadow: 0 10px 30px rgba(15, 45, 40, .07);
+    .panel-top .fecha {
+        color: var(--tenue);
+        font-size: 14px;
+        margin-top: 2px;
+    }
+
+    .panel-top .acciones-top {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-acc {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 13px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: inherit;
+        text-decoration: none;
+        border: 1px solid var(--borde);
+        background: #fff;
+        color: var(--ink);
+        cursor: pointer;
+        transition: background .15s, border-color .15s;
+    }
+
+    .btn-acc svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .btn-acc:hover {
+        background: #f2f7f4;
+        border-color: #cfe0d8;
+    }
+
+    .btn-acc.primario {
+        background: linear-gradient(160deg, var(--green), var(--green-d));
+        color: #fff;
+        border: none;
+        box-shadow: 0 6px 16px rgba(13, 122, 67, .22);
+    }
+
+    .btn-acc.primario:hover {
+        filter: brightness(1.05);
+        background: linear-gradient(160deg, var(--green), var(--green-d));
+    }
+
+    @media (max-width: 560px) {
+        .btn-acc span {
+            display: none;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        .btn-acc {
+            padding: 9px 11px;
         }
+    }
 
-        body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #eef3f1;
-            color: var(--ink);
-            min-height: 100vh;
+    .grid-hoy {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .card {
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .anillo-card {
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .anillo {
+        width: 170px;
+        height: 170px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .anillo .centro {
+        width: 128px;
+        height: 128px;
+        border-radius: 50%;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .anillo .pct {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 34px;
+        font-weight: 600;
+    }
+
+    .anillo .sub {
+        font-size: 12px;
+        color: var(--tenue);
+    }
+
+    .anillo-card .pie {
+        margin-top: 16px;
+        font-size: 14px;
+        color: var(--tenue);
+    }
+
+    .pendientes {
+        padding: 24px;
+    }
+
+    .pendientes h2 {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .pendientes .sub {
+        font-size: 12px;
+        color: var(--tenue);
+        margin: 4px 0 14px;
+    }
+
+    .pendientes .fila {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 11px 0;
+        border-top: 1px solid #eef3f1;
+    }
+
+    .pendientes .nom {
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .pendientes .area {
+        font-size: 12px;
+        color: var(--tenue);
+    }
+
+    .pendientes .todos {
+        padding: 20px 0;
+        text-align: center;
+        color: var(--green-d);
+        font-weight: 600;
+    }
+
+    .mini-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .kpi.azul {
+        border-left-color: var(--azul);
+    }
+
+    .kpi {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        border-left: 4px solid var(--borde);
+    }
+
+    .kpi.verde {
+        border-left-color: var(--green);
+    }
+
+    .kpi.rojo {
+        border-left-color: var(--rojo);
+    }
+
+    .kpi.amarillo {
+        border-left-color: #e0a500;
+    }
+
+    .kpi .k {
+        font-size: 12px;
+        color: var(--tenue);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .kpi .v {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 30px;
+        font-weight: 600;
+        margin-top: 6px;
+    }
+
+    .kpi.rojo .v {
+        color: var(--rojo);
+    }
+
+    .kpi.verde .v {
+        color: var(--green-d);
+    }
+
+    @media (max-width: 980px) {
+        .mini-kpis {
+            grid-template-columns: repeat(2, 1fr);
         }
+    }
 
-        .barra {
-            background: linear-gradient(165deg, var(--deep-2), var(--deep-1));
-            color: #fff;
-            padding: 24px 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
+    @media (max-width: 760px) {
+        .grid-hoy {
+            grid-template-columns: 1fr;
         }
+    }
 
-        .barra .titulo {
-            font-family: "Space Grotesk", sans-serif;
-            font-size: 21px;
-            font-weight: 600;
+    @media (max-width: 460px) {
+        .mini-kpis {
+            grid-template-columns: 1fr;
         }
+    }
+</style>
 
-        .barra .sub {
-            font-size: 13px;
-            opacity: 0.72;
-            margin-top: 3px;
-        }
+<div class="panel-top">
+    <div>
+        <h1 style="font-family:'Space Grotesk';font-size:24px;font-weight:600;">Resumen de hoy</h1>
+        <div class="fecha">{{ hoy|date:"l, j \d\e F \d\e Y" }}</div>
+    </div>
+    <div class="acciones-top">
+        <a class="btn-acc primario" href="{% url 'pasante_nuevo' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+            </svg>
+            <span>Usuario</span>
+        </a>
+        <a class="btn-acc" href="{% url 'asistencias_lista' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span>Asistencia</span>
+        </a>
+        <a class="btn-acc" href="{% url 'dia_nuevo' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>Día especial</span>
+        </a>
+        <a class="btn-acc" href="{% url 'reportes' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            <span>Reportes</span>
+        </a>
+        {% if user.is_superuser %}
+        <a class="btn-acc" href="{% url 'admin:index' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            <span>Avanzado</span>
+        </a>
+        {% endif %}
+    </div>
+</div>
 
-        .salir {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            color: #fff;
-            border-radius: 10px;
-            padding: 9px 16px;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: background .15s;
-        }
-
-        .salir:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .contenedor {
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 30px 28px 48px;
-        }
-
-        .resumen {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin-bottom: 34px;
-        }
-
-        .tile {
-            background: #fff;
-            border-radius: var(--radius);
-            padding: 22px;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .tile::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: var(--green);
-        }
-
-        .tile .num {
-            font-family: "Space Grotesk", sans-serif;
-            font-size: 34px;
-            font-weight: 600;
-            line-height: 1;
-        }
-
-        .tile .lbl {
-            font-size: 13px;
-            color: var(--tenue);
-            margin-top: 8px;
-        }
-
-        .tile.alerta::before {
-            background: var(--rojo);
-        }
-
-        .tile.alerta .num {
-            color: var(--rojo);
-        }
-
-        .seccion-titulo {
-            font-family: "Space Grotesk", sans-serif;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--tenue);
-            text-transform: uppercase;
-            letter-spacing: .12em;
-            margin-bottom: 16px;
-        }
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-            gap: 16px;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: var(--radius);
-            padding: 24px;
-            text-decoration: none;
-            color: inherit;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--borde);
-            transition: transform 0.13s ease, box-shadow 0.13s ease;
-            display: block;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 16px 34px rgba(15, 45, 40, 0.13);
-        }
-
-        .card .icono {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #e7f6ec;
-            color: var(--green-d);
-            font-size: 21px;
-            font-weight: 700;
-        }
-
-        .card.azul .icono {
-            background: #e6effb;
-            color: var(--azul);
-        }
-
-        .card .card-titulo {
-            font-family: "Space Grotesk", sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .card .card-desc {
-            font-size: 13px;
-            color: var(--tenue);
-            margin-top: 5px;
-            line-height: 1.45;
-        }
-
-        .destacada {
-            grid-column: 1 / -1;
-            background: linear-gradient(150deg, var(--green), var(--green-d));
-            color: #fff;
-            border: none;
-            box-shadow: 0 12px 28px rgba(13, 122, 67, .28);
-        }
-
-        .destacada .icono {
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        .destacada .card-desc {
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        @media (max-width: 640px) {
-            .barra {
-                padding: 20px 18px;
-            }
-
-            .contenedor {
-                padding: 22px 16px 40px;
-            }
-
-            .resumen {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <div class="barra">
-        <div>
-            <div class="titulo">Panel de Administración</div>
-            <div class="sub">{{ institucion.nombre }}</div>
+<div class="grid-hoy">
+    <div class="card anillo-card">
+        <div class="anillo"
+            style="background: conic-gradient(var(--green) 0% {{ porcentaje|default:0 }}%, #eef3f1 {{ porcentaje|default:0 }}% 100%);">
+            <div class="centro">
+                <div class="pct">{{ porcentaje|default:0 }}%</div>
+                <div class="sub">marcaron</div>
+            </div>
         </div>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="salir">Cerrar sesión</button>
-        </form>
+        <div class="pie">{{ marcaron|default:0 }} de {{ total_pasantes|default:0 }} usuarios</div>
     </div>
 
-    <div class="contenedor">
-        <div class="resumen">
-            <div class="tile">
-                <div class="num">{{ total_pasantes }}</div>
-                <div class="lbl">Usuarios activos</div>
-            </div>
-            <div class="tile">
-                <div class="num">{{ asistencias_hoy }}</div>
-                <div class="lbl">Marcaciones hoy</div>
-            </div>
-            <div class="tile {% if tardanzas_hoy %}alerta{% endif %}">
-                <div class="num">{{ tardanzas_hoy }}</div>
-                <div class="lbl">Tardanzas hoy</div>
-            </div>
+    <div class="card pendientes">
+        <h2>Aún no marcan hoy</h2>
+        <div class="sub">{{ pendientes_total }} usuario{{pendientes_total|pluralize}} pendiente{{pendientes_total|pluralize }}</div>{% for p in pendientes %}
+        <div class="fila">
+            <div class="nom">{{ p.nombre }}</div>
+            <div class="area">{{ p.area }}</div>
         </div>
-
-        <div class="seccion-titulo">Gestión</div>
-        <div class="cards">
-            <a class="card destacada" href="{% url 'reportes' %}">
-                <div class="icono">📊</div>
-                <div class="card-titulo">Reportes de asistencia</div>
-                <div class="card-desc">Consulta por pasante y fecha, con resumen y exportación a Excel.</div>
-            </a>
-
-            <a class="card" href="{% url 'pasantes_lista' %}">
-                <div class="icono">P</div>
-                <div class="card-titulo">Usuarios</div>
-                <div class="card-desc">Registrar, editar o dar de baja usuario.</div>
-            </a>
-
-            <a class="card azul" href="{% url 'ubicacion' %}">
-                <div class="icono">◎</div>
-                <div class="card-titulo">Ubicación y perímetro</div>
-                <div class="card-desc">Ajustar en el mapa el punto y el radio de la institución.</div>
-            </a>
-
-            <a class="card" href="{% url 'asistencias_lista' %}">
-                <div class="icono">✓</div>
-                <div class="card-titulo">Asistencias</div>
-                <div class="card-desc">Ver y corregir marcaciones registradas.</div>
-            </a>
-
-            <a class="card" href="{% url 'dias_lista' %}">
-                <div class="icono">★</div>
-                <div class="card-titulo">Días especiales</div>
-                <div class="card-desc">Feriados y días con horario distinto.</div>
-            </a>
-
-            <a class="card" href="{% url 'admin:index' %}">
-                <div class="icono">⚙</div>
-                <div class="card-titulo">Administración avanzada</div>
-                <div class="card-desc">Usuarios, permisos y el panel clásico de Django.</div>
-            </a>
-
-            <a class="card" href="{% url 'admins_lista' %}">
-                <div class="icono">👤</div>
-                <div class="card-titulo">Administradores</div>
-                <div class="card-desc">Crear administradores y cambiar contraseñas.</div>
-            </a>
-        </div>
+        {% empty %}
+        <div class="todos">✓ Todos los usuarios ya marcaron hoy.</div>
+        {% endfor %}
     </div>
-</body>
+</div>
 
-</html>
+<div class="mini-kpis">
+    <div class="kpi azul">
+        <div class="k">Usuarios activos</div>
+        <div class="v">{{ total_pasantes|default:0 }}</div>
+    </div>
+    <div class="kpi verde">
+        <div class="k">Marcaron a tiempo</div>
+        <div class="v">{{ a_tiempo }}</div>
+    </div>
+    <div class="kpi rojo">
+        <div class="k">Con tardanza</div>
+        <div class="v">{{ tardanzas_hoy }}</div>
+    </div>
+    <div class="kpi amarillo">
+        <div class="k">Sin salida</div>
+        <div class="v">{{ sin_salida }}</div>
+    </div>
+</div>
+{% endblock %}

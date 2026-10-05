@@ -144,7 +144,6 @@
             border: 1px solid rgba(255, 255, 255, .14);
         }
 
-        /* ---------- TARJETA ---------- */
         .tarjeta {
             background: var(--surface);
             border-radius: 24px;
@@ -323,12 +322,12 @@
         {% if sin_pasante %}
         <div class="hero">
             <div class="eyebrow">Registro de asistencia</div>
-            <div class="saludo">Cuenta sin pasante</div>
+            <div class="saludo">Cuenta sin usuario</div>
         </div>
         <div class="tarjeta">
             <p class="aviso" style="color:#5c7370;">
-                Tu usuario no está vinculado a ningún pasante, así que no puede
-                marcar asistencia. Ingresa con la cuenta de un pasante.
+                Tu cuenta no está vinculada a ningún usuario, así que no puede
+                marcar asistencia. Ingresa con una cuenta de usuario.
             </p>
         </div>
         <div class="pie">
@@ -338,7 +337,7 @@
             </form>
         </div>
         {% else %}
-        <!-- HERO: reloj protagonista -->
+
         <div class="hero">
             <div class="eyebrow">Registro de asistencia</div>
             <div class="reloj" id="reloj">--:--:--</div>
@@ -367,6 +366,7 @@
                 <input type="hidden" name="tipo" id="tipo">
                 <input type="hidden" name="lat" id="lat">
                 <input type="hidden" name="lng" id="lng">
+                <input type="hidden" name="precision" id="precision">
                 <input type="hidden" name="dispositivo" id="dispositivo">
                 <div class="botones">
                     <button type="button" class="marca btn-entrada" onclick="marcarAsistencia('ENTRADA')">
@@ -424,7 +424,6 @@
             if (campo) campo.value = id;
         })();
 
-        /* RELOJ EN VIVO */
         const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
             "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
         const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -444,15 +443,16 @@
         actualizarReloj();
         setInterval(actualizarReloj, 1000);
 
-        /* MAPA */
         {% if not sin_pasante %}
-        const instLat = {{ institucion_lat| unlocalize }};
-        const instLng = {{ institucion_lng| unlocalize }};
-        const radio = {{ radio| unlocalize }};
+        const instLat = {{ institucion_lat|unlocalize }};
+        const instLng = {{ institucion_lng|unlocalize }};
+        const radio = {{ radio|unlocalize }};
 
         const mapa = L.map("mapa").setView([instLat, instLng], 16);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap", maxZoom: 19
+        // Mosaicos de Esri (ArcGIS): funcionan sin API key. OpenStreetMap bloquea
+        // las apps (error 403). Esri usa el orden {z}/{y}/{x}.
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+            attribution: "Tiles &copy; Esri", maxZoom: 19
         }).addTo(mapa);
 
         L.circleMarker([instLat, instLng], {
@@ -464,6 +464,13 @@
         }).addTo(mapa);
 
         mapa.fitBounds(circulo.getBounds());
+
+        // Forzar el recálculo del tamaño (el mapa va dentro de una tarjeta).
+        mapa.whenReady(function () {
+            setTimeout(function () { mapa.invalidateSize(); }, 150);
+            setTimeout(function () { mapa.invalidateSize(); }, 500);
+        });
+        window.addEventListener("resize", function () { mapa.invalidateSize(); });
 
         let miMarcador = null;
 
@@ -522,6 +529,7 @@
                 function (pos) {
                     document.getElementById("lat").value = pos.coords.latitude;
                     document.getElementById("lng").value = pos.coords.longitude;
+                    document.getElementById("precision").value = pos.coords.accuracy;
                     estado.textContent = "Ubicación obtenida. Registrando…";
                     document.getElementById("form-marca").submit();
                 },

@@ -1,0 +1,21 @@
+{% extends "registro/base.html" %}
+{% block titulo %}Reiniciar celular{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+    <h1>Reiniciar celular vinculado</h1>
+</div>
+<div class="tarjeta">
+    <p style="margin-bottom:16px; line-height:1.55;">
+        ¿Seguro que quieres reiniciar el celular vinculado de <strong>{{ pasante.nombre }}</strong>?
+        El vínculo actual se borrará y el <strong>próximo celular</strong> con el que marque o inicie
+        sesión quedará registrado como el suyo. Úsalo solo si el pasante cambió de teléfono.
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-botones">
+            <button type="submit" class="btn btn-rojo">Reiniciar celular</button>
+            <a class="btn btn-gris" href="{% url 'pasantes_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

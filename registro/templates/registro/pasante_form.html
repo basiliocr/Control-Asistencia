@@ -1,12 +1,66 @@
 {% extends "registro/base.html" %}
-{% block titulo %}{% if pasante %}Editar pasante{% else %}Nuevo pasante{% endif %}{% endblock %}
+{% block titulo %}{% if pasante %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
 
 {% block contenido %}
+<style>
+    .form-usuario {
+        max-width: 640px;
+    }
+
+    .form-usuario .campo {
+        margin-bottom: 0;
+    }
+
+    .seccion-form {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--tenue);
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        margin: 24px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--borde);
+    }
+
+    .seccion-form:first-of-type {
+        margin-top: 4px;
+    }
+
+    .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 6px;
+    }
+
+    .check-row input {
+        width: auto;
+    }
+
+    @media (max-width: 520px) {
+        .grid2 {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+    }
+</style>
+
 <div class="cabecera">
-    <h1>{% if pasante %}Editar Usuario{% else %}Nuevo pasante{% endif %}</h1>
+    <h1>{% if pasante %}Editar usuario{% else %}Nuevo usuario{% endif %}</h1>
 </div>
 
-<div class="tarjeta">
+<div class="tarjeta form-usuario">
     <form method="post" novalidate>
         {% csrf_token %}
 
@@ -14,14 +68,67 @@
         <div class="msg error">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        {% for field in form %}
-        <div class="campo">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
-            {% for e in field.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        <div class="seccion-form">Cuenta de acceso</div>
+        <div class="grid2">
+            <div class="campo">
+                <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                {{ form.username }}
+                {% if form.username.help_text %}<small>{{ form.username.help_text }}</small>{% endif %}
+                {% for e in form.username.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="campo">
+                <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                {{ form.password }}
+                {% if form.password.help_text %}<small>{{ form.password.help_text }}</small>{% endif %}
+                {% for e in form.password.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
         </div>
-        {% endfor %}
+
+        <div class="seccion-form">Datos personales</div>
+        <div class="grid2">
+            <div class="campo">
+                <label for="{{ form.nombre.id_for_label }}">Nombre completo</label>
+                {{ form.nombre }}
+                {% for e in form.nombre.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="campo">
+                <label for="{{ form.ci.id_for_label }}">C.I.</label>
+                {{ form.ci }}
+                {% for e in form.ci.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="seccion-form">Asignación y horario</div>
+        <div class="grid2">
+            <div class="campo">
+                <label for="{{ form.area.id_for_label }}">Dependencia</label>
+                {{ form.area }}
+                {% for e in form.area.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="campo">
+                <label for="{{ form.identificador.id_for_label }}">{{ form.identificador.label }}</label>
+                {{ form.identificador }}
+                {% for e in form.identificador.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="grid2">
+            <div class="campo">
+                <label for="{{ form.horario_entrada.id_for_label }}">Hora de entrada</label>
+                {{ form.horario_entrada }}
+                {% for e in form.horario_entrada.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="campo">
+                <label for="{{ form.horario_salida.id_for_label }}">Hora de salida</label>
+                {{ form.horario_salida }}
+                {% for e in form.horario_salida.errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+        </div>
+
+        <label class="check-row">
+            {{ form.activo }}
+            <span>Cuenta activa (puede iniciar sesión y marcar)</span>
+        </label>
+        {% for e in form.activo.errors %}<div class="error">{{ e }}</div>{% endfor %}
 
         <div class="form-botones">
             <button type="submit" class="btn btn-verde">Guardar</button>
