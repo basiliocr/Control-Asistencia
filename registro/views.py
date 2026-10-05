@@ -38,7 +38,7 @@ def marcar(request):
         lng = request.POST.get("lng")
         dispositivo = request.POST.get("dispositivo")
         precision = request.POST.get("precision")
-        resultado = registrar_con_gps(pasante, tipo, lat, lng, dispositivo)
+        resultado = registrar_con_gps(pasante, tipo, lat, lng, dispositivo, precision)
 
     inst = Institucion.obtener()
     return render(
